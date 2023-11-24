@@ -1,4 +1,5 @@
 use crate::traits::wire::WireTrait;
+use bitcoin::Script;
 use bitcoin::hashes::sha256;
 use bitcoin::hashes::Hash;
 use bitcoin::Target;
@@ -10,8 +11,8 @@ pub struct Wire {
     pub selector: Option<bool>,
 }
 
-impl WireTrait for Wire {
-    fn new() -> Self {
+impl Wire {
+    pub fn new() -> Self {
         let mut rng = rand::thread_rng();
 
         let preimage1 = Target::from_le_bytes(rng.gen());
@@ -27,6 +28,12 @@ impl WireTrait for Wire {
             hashes: [hash1, hash2],
             selector: None,
         };
+    }
+}
+
+impl WireTrait for Wire {
+    fn create_commit_script(&self) -> Box<&Script> {
+        return Box::new(Script::new());
     }
 }
 
