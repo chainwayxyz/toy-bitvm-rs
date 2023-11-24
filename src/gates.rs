@@ -1,10 +1,17 @@
-use crate::traits::{bit_commitment::BitCommitmentTrait, gate::GateTrait};
+use crate::{wire::Wire, traits::gate::GateTrait};
 
-pub struct NotGate<COM: BitCommitmentTrait> {
-    pub input: COM,
-    pub output: COM,
+// Every gate has a type parameter COM, which is a bit commitment scheme which can be hash based or schnorr based.
+// Every gate has an array of input wire pointers.
+pub struct NotGate {
+    pub input_wires: Vec<*mut Wire>,
+    pub output_wires: Vec<*mut Wire>,
 }
 
-impl<COM> GateTrait<COM> for NotGate<COM> where COM: BitCommitmentTrait {
-    
+impl GateTrait for NotGate {
+    fn new(input_wires: Vec<*mut Wire>, output_wires: Vec<*mut Wire>) -> Self {
+        Self {
+            input_wires,
+            output_wires,
+        }
+    }
 }
