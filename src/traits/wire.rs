@@ -1,4 +1,6 @@
+use bitcoin::ScriptBuf;
+
 pub trait WireTrait {
     fn new() -> Self;
-    // fn create_commit_script(&self) -> Script;
+    fn generate_anti_contradiction_script(&self) -> ScriptBuf;
 }
