@@ -1,3 +1,2 @@
-pub trait Gate {
-    
+pub trait GateTrait <COM> {
 }
