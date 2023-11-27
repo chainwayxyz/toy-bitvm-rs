@@ -1,13 +1,10 @@
 use crate::traits::wire::WireTrait;
 use bitcoin::blockdata::script::Builder;
-use bitcoin::blockdata::script::Instruction;
 use bitcoin::hashes::sha256;
 use bitcoin::hashes::Hash;
 use bitcoin::opcodes::all::*;
-use bitcoin::Script;
 use bitcoin::ScriptBuf;
 use bitcoin::Target;
-use bitcoin::opcodes::all::*;
 use rand::Rng;
 
 pub struct Wire {
