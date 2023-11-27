@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - ekrem/ci
 
 
 name: Check and Lint
