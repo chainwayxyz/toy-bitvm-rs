@@ -7,6 +7,7 @@ use bitcoin::ScriptBuf;
 use bitcoin::Target;
 use rand::Rng;
 
+#[derive(Clone, Debug)]
 pub struct Wire {
     pub preimages: Option<[Target; 2]>,
     pub hashes: [Target; 2],
