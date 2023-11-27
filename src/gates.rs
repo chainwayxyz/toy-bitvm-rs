@@ -1,4 +1,4 @@
-use crate::{wire::Wire, traits::gate::GateTrait};
+use crate::{traits::gate::GateTrait, wire::Wire};
 
 // Every gate has a type parameter COM, which is a bit commitment scheme which can be hash based or schnorr based.
 // Every gate has an array of input wire pointers.
@@ -12,7 +12,7 @@ impl NotGate {
         return NotGate {
             input_wires,
             output_wires,
-        }
+        };
     }
 }
 
@@ -32,7 +32,7 @@ impl AndGate {
         return AndGate {
             input_wires,
             output_wires,
-        }
+        };
     }
 }
 
@@ -52,7 +52,7 @@ impl XorGate {
         return XorGate {
             input_wires,
             output_wires,
-        }
+        };
     }
 }
 

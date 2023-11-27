@@ -1,13 +1,17 @@
 use std::collections::HashMap;
 
-use crate::{traits::{gate::GateTrait, circuit::CircuitTrait}, gates::{NotGate, AndGate, XorGate}, wire::Wire};
 use crate::utils::read_lines;
+use crate::{
+    gates::{AndGate, NotGate, XorGate},
+    traits::{circuit::CircuitTrait, gate::GateTrait},
+    wire::Wire,
+};
 
 pub struct Circuit {
     pub input_sizes: Vec<usize>,
     pub output_sizes: Vec<usize>,
     pub gates: Vec<Box<dyn GateTrait>>,
-    pub wires: Vec<Wire>
+    pub wires: Vec<Wire>,
 }
 
 impl Circuit {
@@ -17,14 +21,12 @@ impl Circuit {
             output_sizes: vec![32],
             gates: vec![Box::new(NotGate::new(vec![], vec![]))],
             wires: vec![],
-        }
+        };
     }
 }
 
 impl CircuitTrait for Circuit {
-    fn evaluate(&self) {
-
-    }
+    fn evaluate(&self) {}
 
     fn from_bristol(file: &str) -> Self {
         let mut nog: usize = 0; // number of gates
@@ -40,51 +42,59 @@ impl CircuitTrait for Circuit {
                     let mut words = line_str.split_whitespace();
                     nog = words.next().unwrap().parse().unwrap();
                     now = words.next().unwrap().parse().unwrap();
-                }
-                else if i == 1 {
+                } else if i == 1 {
                     let mut words = line_str.split_whitespace();
                     for _ in 0..words.next().unwrap().parse().unwrap() {
                         let x: usize = words.next().unwrap().parse().unwrap();
                         input_sizes.push(x);
                     }
-                }
-                else if i == 2 {
+                } else if i == 2 {
                     let mut words = line_str.split_whitespace();
                     for _ in 0..words.next().unwrap().parse().unwrap() {
                         let x: usize = words.next().unwrap().parse().unwrap();
                         output_sizes.push(x);
                     }
-                }
-                else if line_str != "" {
+                } else if line_str != "" {
                     let mut words = line_str.split_whitespace();
                     let noi = words.next().unwrap().parse().unwrap(); // number of inputs
                     let noo = words.next().unwrap().parse().unwrap(); // number of outputs
-                    let input_wires = (0..noi).map(|_| wire_indices.entry(words.next().unwrap().parse::<usize>().unwrap()).or_insert(Wire::new()).to_owned()).collect();
-                    let output_wires = (0..noo).map(|_| wire_indices.entry(words.next().unwrap().parse::<usize>().unwrap()).or_insert(Wire::new()).to_owned()).collect();
+                    let input_wires = (0..noi)
+                        .map(|_| {
+                            wire_indices
+                                .entry(words.next().unwrap().parse::<usize>().unwrap())
+                                .or_insert(Wire::new())
+                                .to_owned()
+                        })
+                        .collect();
+                    let output_wires = (0..noo)
+                        .map(|_| {
+                            wire_indices
+                                .entry(words.next().unwrap().parse::<usize>().unwrap())
+                                .or_insert(Wire::new())
+                                .to_owned()
+                        })
+                        .collect();
                     let gate_type = words.next().unwrap();
-                    
+
                     if gate_type.to_lowercase() == "not" {
                         let gate = NotGate {
                             input_wires,
                             output_wires,
                         };
                         gates.push(Box::new(gate));
-                    }
-                    else if gate_type.to_lowercase() == "and" {
+                    } else if gate_type.to_lowercase() == "and" {
                         let gate = AndGate {
                             input_wires,
                             output_wires,
                         };
                         gates.push(Box::new(gate));
-                    }
-                    else if gate_type.to_lowercase() == "xor" {
+                    } else if gate_type.to_lowercase() == "xor" {
                         let gate = XorGate {
                             input_wires,
                             output_wires,
                         };
                         gates.push(Box::new(gate));
-                    }
-                    else {
+                    } else {
                         panic!("unknown gate type");
                     }
                 }
@@ -100,12 +110,10 @@ impl CircuitTrait for Circuit {
             output_sizes,
             gates,
             wires: wire_indices.values().cloned().collect::<Vec<Wire>>(),
-        }
+        };
     }
 
-    fn generate_commitment_tree(&self) {
-
-    }
+    fn generate_commitment_tree(&self) {}
 }
 
 #[cfg(test)]
@@ -124,4 +132,3 @@ mod tests {
         assert!(circuit.output_sizes[0] == 64);
     }
 }
-
