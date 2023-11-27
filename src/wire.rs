@@ -47,6 +47,9 @@ impl WireTrait for Wire {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bitcoin::TapLeafHash;
+    use bitcoin::Transaction;
+    use bitcoin_scriptexec::*;
 
     #[test]
     fn test_wire() {
@@ -58,7 +61,42 @@ mod tests {
     #[test]
     fn test_generate_anti_contradiction_script() {
         let wire = Wire::new();
-        let _script = wire.generate_anti_contradiction_script();
-        // TODO:Test if script returns 1 given input witness with [preimages[0], preimages[1]
+        let script = wire.generate_anti_contradiction_script();
+
+        let preimages_vec = if let Some(preimages) = wire.preimages {
+            vec![preimages[1].to_vec(), preimages[0].to_vec()]
+        } else {
+            panic!("wire preimages are None")
+        };
+
+        let mut exec = Exec::new(
+            ExecCtx::Tapscript,
+            Options::default(),
+            TxTemplate {
+                tx: Transaction {
+                    version: bitcoin::transaction::Version::TWO,
+                    lock_time: bitcoin::locktime::absolute::LockTime::ZERO,
+                    input: vec![],
+                    output: vec![],
+                },
+                prevouts: vec![],
+                input_idx: 0,
+                taproot_annex_scriptleaf: Some((TapLeafHash::all_zeros(), None)),
+            },
+            script,
+            preimages_vec,
+        )
+        .expect("error creating exec");
+
+        loop {
+            if exec.exec_next().is_err() {
+                break;
+            }
+        }
+
+        let res = exec.result().unwrap().clone();
+
+        println!("{:?}", res);
+        assert_eq!(res.error, None);
     }
 }
