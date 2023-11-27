@@ -1,8 +1,10 @@
 use crate::traits::wire::WireTrait;
-use bitcoin::Script;
+use bitcoin::ScriptBuf;
 use bitcoin::hashes::sha256;
 use bitcoin::hashes::Hash;
 use bitcoin::Target;
+use bitcoin::blockdata::script::Builder;
+use bitcoin::opcodes::all::*;
 use rand::Rng;
 
 pub struct Wire {
@@ -32,8 +34,15 @@ impl Wire {
 }
 
 impl WireTrait for Wire {
-    fn create_commit_script(&self) -> Box<&Script> {
-        return Box::new(Script::new());
+    fn generate_anti_contradiction_script(&self) -> ScriptBuf {
+        Builder::new()
+            .push_opcode(OP_SHA256)
+            .push_slice(&self.hashes[0].to_le_bytes())
+            .push_opcode(OP_EQUALVERIFY)
+            .push_opcode(OP_SHA256)
+            .push_slice(&self.hashes[1].to_le_bytes())
+            .push_opcode(OP_EQUAL)
+            .into_script()
     }
 }
 
@@ -47,4 +56,12 @@ mod tests {
         assert_eq!(wire.preimages.is_some(), true);
         assert_eq!(wire.selector.is_none(), true);
     }
+
+    #[test]
+    fn test_generate_anti_contradiction_script() {
+        let wire = Wire::new();
+        let _script = wire.generate_anti_contradiction_script();
+        // TODO:Test if script returns 1 given input witness with [preimages[0], preimages[1]
+    }
 }
+
