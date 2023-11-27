@@ -7,15 +7,17 @@ use bitcoin::opcodes::all::*;
 use bitcoin::Script;
 use bitcoin::ScriptBuf;
 use bitcoin::Target;
+use bitcoin::opcodes::all::*;
 use rand::Rng;
+
 pub struct Wire {
     pub preimages: Option<[Target; 2]>,
     pub hashes: [Target; 2],
     pub selector: Option<bool>,
 }
 
-impl WireTrait for Wire {
-    fn new() -> Self {
+impl Wire {
+    pub fn new() -> Self {
         let mut rng = rand::thread_rng();
 
         let preimage1 = Target::from_le_bytes(rng.gen());
@@ -32,7 +34,9 @@ impl WireTrait for Wire {
             selector: None,
         };
     }
+}
 
+impl WireTrait for Wire {
     fn generate_anti_contradiction_script(&self) -> ScriptBuf {
         Builder::new()
             .push_opcode(OP_SHA256)
@@ -59,7 +63,8 @@ mod tests {
     #[test]
     fn test_generate_anti_contradiction_script() {
         let wire = Wire::new();
-        let script = wire.generate_anti_contradiction_script();
+        let _script = wire.generate_anti_contradiction_script();
         // TODO:Test if script returns 1 given input witness with [preimages[0], preimages[1]
     }
 }
+

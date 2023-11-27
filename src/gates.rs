@@ -7,11 +7,17 @@ pub struct NotGate {
     pub output_wires: Vec<*mut Wire>,
 }
 
-impl GateTrait for NotGate {
-    fn new(input_wires: Vec<*mut Wire>, output_wires: Vec<*mut Wire>) -> Self {
-        Self {
+impl NotGate {
+    pub fn new(input_wires: Vec<*mut Wire>, output_wires: Vec<*mut Wire>) -> Self {
+        return NotGate {
             input_wires,
             output_wires,
         }
+    }
+}
+
+impl GateTrait for NotGate {
+    fn create_challenge_script(&self) -> String {
+        return "NotGate".to_string();
     }
 }
