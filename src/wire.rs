@@ -14,6 +14,12 @@ pub struct Wire {
     pub selector: Option<bool>,
 }
 
+impl Default for Wire {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Wire {
     pub fn new() -> Self {
         let mut rng = rand::thread_rng();

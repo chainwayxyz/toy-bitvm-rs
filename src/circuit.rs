@@ -14,6 +14,12 @@ pub struct Circuit {
     pub wires: Vec<Wire>,
 }
 
+impl Default for Circuit {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Circuit {
     pub fn new() -> Self {
         Circuit {
