@@ -8,3 +8,6 @@ edition = "2021"
 [dependencies]
 bitcoin = "0.31.0"
 rand = "0.8.5"
+
+[dev-dependencies]
+bitcoin-scriptexec = { git = "https://github.com/ekrembal/rust-bitcoin-scriptexec" }
