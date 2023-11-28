@@ -11,7 +11,7 @@ pub struct NotGate {
 
 impl NotGate {
     pub fn new(input_wires: Vec<Rc<RefCell<Wire>>>, output_wires: Vec<Rc<RefCell<Wire>>>) -> Self {
-        return NotGate {
+        NotGate {
             input_wires,
             output_wires,
         }
@@ -39,7 +39,7 @@ impl GateTrait for NotGate {
     }
 
     fn print(&self) -> String {
-        return format!("Gate[]: {:?}, {:?}, {:?}", self.input_wires[0], self.input_wires[1], self.output_wires[0]);
+        format!("Gate[]: {:?}, {:?}, {:?}", self.input_wires[0], self.input_wires[1], self.output_wires[0])
     }
 }
 
@@ -50,7 +50,7 @@ pub struct AndGate {
 
 impl AndGate {
     pub fn new(input_wires: Vec<Rc<RefCell<Wire>>>, output_wires: Vec<Rc<RefCell<Wire>>>) -> Self {
-        return AndGate {
+        AndGate {
             input_wires,
             output_wires,
         }
@@ -77,7 +77,7 @@ impl GateTrait for AndGate {
     }
 
     fn print(&self) -> String {
-        return format!("Gate[]: {:?}, {:?}, {:?}", self.input_wires[0], self.input_wires[1], self.output_wires[0]);
+        format!("Gate[]: {:?}, {:?}, {:?}", self.input_wires[0], self.input_wires[1], self.output_wires[0])
     }
 }
 
@@ -88,7 +88,7 @@ pub struct XorGate {
 
 impl XorGate {
     pub fn new(input_wires: Vec<Rc<RefCell<Wire>>>, output_wires: Vec<Rc<RefCell<Wire>>>) -> Self {
-        return XorGate {
+        XorGate {
             input_wires,
             output_wires,
         }
@@ -115,6 +115,6 @@ impl GateTrait for XorGate {
     }
 
     fn print(&self) -> String {
-        return format!("Gate[]: {:?}, {:?}, {:?}", self.input_wires[0], self.input_wires[1], self.output_wires[0]);
+        format!("Gate[]: {:?}, {:?}, {:?}", self.input_wires[0], self.input_wires[1], self.output_wires[0])
     }
 }

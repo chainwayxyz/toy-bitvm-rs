@@ -43,7 +43,7 @@ impl CircuitTrait for Circuit {
             combined_inputs.extend(a);
         }
         for (i, value) in combined_inputs.iter().enumerate() {
-            self.wires[i].try_borrow_mut().unwrap().selector = Some(value.clone());
+            self.wires[i].try_borrow_mut().unwrap().selector = Some(*value);
         }
         //self.gates[0].set_input_wires();
         //self.wires[0].try_borrow_mut().unwrap().selector = Some(true);
@@ -63,7 +63,7 @@ impl CircuitTrait for Circuit {
             output_index += os;
             output.push(output_vec);
         }
-        return output;
+        output
     }
 
     fn from_bristol(file: &str) -> Self {

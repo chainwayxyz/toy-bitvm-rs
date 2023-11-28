@@ -15,7 +15,7 @@ pub fn number_to_bool_array(number: usize, length: usize) -> Vec<bool> {
     for i in 0..length {
         v.push(0 != number & (1 << i));
     }
-    return v;
+    v
 }
 
 pub fn bool_array_to_number(bool_array: Vec<bool>) -> usize {
@@ -26,5 +26,5 @@ pub fn bool_array_to_number(bool_array: Vec<bool>) -> usize {
             a += 1;
         }
     }
-    return a;
+    a
 }
