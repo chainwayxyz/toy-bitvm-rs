@@ -8,3 +8,4 @@ pub trait GateTrait {
     fn set_input_wires(&mut self);
     fn print(&self) -> String;
 }
+

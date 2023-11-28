@@ -14,13 +14,13 @@ impl NotGate {
         return NotGate {
             input_wires,
             output_wires,
-        };
+        }
     }
 }
 
 impl GateTrait for NotGate {
     fn create_challenge_script(&self) -> String {
-        return "NotGate".to_string();
+        "NotGate".to_string()
     }
 
     fn evaluate(&mut self) {
@@ -53,13 +53,13 @@ impl AndGate {
         return AndGate {
             input_wires,
             output_wires,
-        };
+        }
     }
 }
 
 impl GateTrait for AndGate {
     fn create_challenge_script(&self) -> String {
-        return "NotGate".to_string();
+        "NotGate".to_string()
     }
 
     fn evaluate(&mut self) {
@@ -91,13 +91,13 @@ impl XorGate {
         return XorGate {
             input_wires,
             output_wires,
-        };
+        }
     }
 }
 
 impl GateTrait for XorGate {
     fn create_challenge_script(&self) -> String {
-        return "NotGate".to_string();
+        "NotGate".to_string()
     }
 
     fn evaluate(&mut self) {

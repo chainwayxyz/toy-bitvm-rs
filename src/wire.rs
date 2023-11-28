@@ -23,6 +23,12 @@ impl Debug for Wire {
     }
 }
 
+impl Default for Wire {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Wire {
     pub fn new(index: usize) -> Self {
         let mut rng = rand::thread_rng();
@@ -35,7 +41,7 @@ impl Wire {
         let hash2 =
             Target::from_le_bytes(sha256::Hash::hash(&preimage2.to_le_bytes()).to_byte_array());
 
-        return Wire {
+        Wire {
             preimages: Some([preimage1, preimage2]),
             hashes: [hash1, hash2],
             selector: None,
@@ -48,10 +54,10 @@ impl WireTrait for Wire {
     fn generate_anti_contradiction_script(&self) -> ScriptBuf {
         Builder::new()
             .push_opcode(OP_SHA256)
-            .push_slice(&self.hashes[0].to_le_bytes())
+            .push_slice(self.hashes[0].to_le_bytes())
             .push_opcode(OP_EQUALVERIFY)
             .push_opcode(OP_SHA256)
-            .push_slice(&self.hashes[1].to_le_bytes())
+            .push_slice(self.hashes[1].to_le_bytes())
             .push_opcode(OP_EQUAL)
             .into_script()
     }
@@ -75,4 +81,3 @@ mod tests {
         // TODO:Test if script returns 1 given input witness with [preimages[0], preimages[1]
     }
 }
-

@@ -1,0 +1,45 @@
+name: Rust CI
+
+on:
+  push:
+    branches: "main"
+  pull_request:
+    branches: "main"
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt-and-clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2.7.0
+      - name: Version info
+        run: |
+          rustc --version
+          cargo clippy --version
+      - name: Fmt check
+        run: |
+          if ! cargo fmt -- --check ; then
+            echo "Formatting errors detected, apply make fmt."
+            exit 1
+          fi
+      - name: Clippy check
+        run: |
+          if ! cargo clippy -- -D warnings ; then
+            echo "Clippy warnings detected, apply proper fixes."
+            exit 1
+          fi
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2.7.0
+      - name: Run Tests
+        run: |
+          if ! cargo test ; then
+            echo "Tests failed."
+            exit 1
+          fi
