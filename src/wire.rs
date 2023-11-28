@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::traits::wire::WireTrait;
 use bitcoin::blockdata::script::Builder;
 use bitcoin::hashes::sha256;
@@ -7,11 +9,18 @@ use bitcoin::ScriptBuf;
 use bitcoin::Target;
 use rand::Rng;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Wire {
     pub preimages: Option<[Target; 2]>,
     pub hashes: [Target; 2],
     pub selector: Option<bool>,
+    pub index: usize,
+}
+
+impl Debug for Wire {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Wire[{}]: {:?}", self.index, self.selector)
+    }
 }
 
 impl Default for Wire {
@@ -21,7 +30,7 @@ impl Default for Wire {
 }
 
 impl Wire {
-    pub fn new() -> Self {
+    pub fn new(index: usize) -> Self {
         let mut rng = rand::thread_rng();
 
         let preimage1 = Target::from_le_bytes(rng.gen());
@@ -36,7 +45,8 @@ impl Wire {
             preimages: Some([preimage1, preimage2]),
             hashes: [hash1, hash2],
             selector: None,
-        }
+            index,
+        };
     }
 }
 
@@ -59,14 +69,14 @@ mod tests {
 
     #[test]
     fn test_wire() {
-        let wire = Wire::new();
+        let wire = Wire::new(0);
         assert_eq!(wire.preimages.is_some(), true);
         assert_eq!(wire.selector.is_none(), true);
     }
 
     #[test]
     fn test_generate_anti_contradiction_script() {
-        let wire = Wire::new();
+        let wire = Wire::new(0);
         let _script = wire.generate_anti_contradiction_script();
         // TODO:Test if script returns 1 given input witness with [preimages[0], preimages[1]
     }
