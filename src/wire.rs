@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::traits::wire::WireTrait;
 use bitcoin::blockdata::script::Builder;
 use bitcoin::hashes::sha256;
@@ -6,15 +8,28 @@ use bitcoin::opcodes::all::*;
 use bitcoin::ScriptBuf;
 use rand::Rng;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Wire {
     pub preimages: Option<[[u8; 32]; 2]>,
     pub hashes: [[u8; 32]; 2],
     pub selector: Option<bool>,
+    pub index: usize,
+}
+
+impl Debug for Wire {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Wire[{}]: {:?}", self.index, self.selector)
+    }
+}
+
+impl Default for Wire {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Wire {
-    pub fn new() -> Self {
+    pub fn new(index: usize) -> Self {
         let mut rng = rand::thread_rng();
 
         let preimage1: [u8; 32] = rng.gen();
@@ -23,10 +38,11 @@ impl Wire {
         let hash1 = sha256::Hash::hash(&preimage1).to_byte_array();
         let hash2 = sha256::Hash::hash(&preimage2).to_byte_array();
 
-        return Wire {
+        Wire {
             preimages: Some([preimage1, preimage2]),
             hashes: [hash1, hash2],
             selector: None,
+            index,
         };
     }
 }
@@ -53,7 +69,7 @@ mod tests {
 
     #[test]
     fn test_wire() {
-        let wire = Wire::new();
+        let wire = Wire::new(0);
         assert_eq!(wire.preimages.is_some(), true);
         assert_eq!(wire.selector.is_none(), true);
     }
