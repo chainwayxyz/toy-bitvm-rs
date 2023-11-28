@@ -1,5 +1,5 @@
+use bitvmrs::utils::{bool_array_to_number, number_to_bool_array};
 use bitvmrs::{circuit::Circuit, traits::circuit::CircuitTrait};
-use bitvmrs::utils::{number_to_bool_array, bool_array_to_number};
 
 fn main() {
     println!("Hello, world!");

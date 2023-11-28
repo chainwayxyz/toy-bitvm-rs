@@ -1,7 +1,7 @@
+use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::iter::zip;
 use std::rc::Rc;
-use std::cell::RefCell;
 
 use crate::utils::read_lines;
 use crate::{
@@ -110,8 +110,7 @@ impl CircuitTrait for Circuit {
                     let output_wires = (0..noo)
                         .map(|_| {
                             let k = words.next().unwrap().parse::<usize>().unwrap();
-                            let x = wire_indices
-                                .get(&k).unwrap().clone();
+                            let x = wire_indices.get(&k).unwrap().clone();
                             x
                         })
                         .collect();
@@ -151,7 +150,10 @@ impl CircuitTrait for Circuit {
             input_sizes,
             output_sizes,
             gates,
-            wires: wire_indices.values().cloned().collect::<Vec<Rc<RefCell<Wire>>>>(),
+            wires: wire_indices
+                .values()
+                .cloned()
+                .collect::<Vec<Rc<RefCell<Wire>>>>(),
         };
     }
 
@@ -161,7 +163,7 @@ impl CircuitTrait for Circuit {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::{number_to_bool_array, bool_array_to_number};
+    use crate::utils::{bool_array_to_number, number_to_bool_array};
 
     #[test]
     fn test_circuit() {

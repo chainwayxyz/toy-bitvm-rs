@@ -1,6 +1,6 @@
 use crate::{traits::gate::GateTrait, wire::Wire};
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 // Every gate has a type parameter COM, which is a bit commitment scheme which can be hash based or schnorr based.
 // Every gate has an array of input wire pointers.
@@ -39,7 +39,10 @@ impl GateTrait for NotGate {
     }
 
     fn print(&self) -> String {
-        format!("Gate[]: {:?}, {:?}, {:?}", self.input_wires[0], self.input_wires[1], self.output_wires[0])
+        format!(
+            "Gate[]: {:?}, {:?}, {:?}",
+            self.input_wires[0], self.input_wires[1], self.output_wires[0]
+        )
     }
 }
 
@@ -72,12 +75,13 @@ impl GateTrait for AndGate {
         out.selector = Some(w);
     }
 
-    fn set_input_wires(&mut self) {
-        
-    }
+    fn set_input_wires(&mut self) {}
 
     fn print(&self) -> String {
-        format!("Gate[]: {:?}, {:?}, {:?}", self.input_wires[0], self.input_wires[1], self.output_wires[0])
+        format!(
+            "Gate[]: {:?}, {:?}, {:?}",
+            self.input_wires[0], self.input_wires[1], self.output_wires[0]
+        )
     }
 }
 
@@ -110,11 +114,12 @@ impl GateTrait for XorGate {
         out.selector = Some(w);
     }
 
-    fn set_input_wires(&mut self) {
-
-    }
+    fn set_input_wires(&mut self) {}
 
     fn print(&self) -> String {
-        format!("Gate[]: {:?}, {:?}, {:?}", self.input_wires[0], self.input_wires[1], self.output_wires[0])
+        format!(
+            "Gate[]: {:?}, {:?}, {:?}",
+            self.input_wires[0], self.input_wires[1], self.output_wires[0]
+        )
     }
 }
