@@ -1,6 +1,7 @@
 .PHONY: set-hook fmt fix check
 
 set-hook: 
+	chmod u+x .githooks/*
 	git config core.hooksPath .githooks
 	
 fmt:

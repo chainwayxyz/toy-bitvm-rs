@@ -9,16 +9,16 @@ pub struct NotGate {
 
 impl NotGate {
     pub fn new(input_wires: Vec<Wire>, output_wires: Vec<Wire>) -> Self {
-        return NotGate {
+        NotGate {
             input_wires,
             output_wires,
-        };
+        }
     }
 }
 
 impl GateTrait for NotGate {
     fn create_challenge_script(&self) -> String {
-        return "NotGate".to_string();
+        "NotGate".to_string()
     }
 }
 
@@ -29,16 +29,16 @@ pub struct AndGate {
 
 impl AndGate {
     pub fn new(input_wires: Vec<Wire>, output_wires: Vec<Wire>) -> Self {
-        return AndGate {
+        AndGate {
             input_wires,
             output_wires,
-        };
+        }
     }
 }
 
 impl GateTrait for AndGate {
     fn create_challenge_script(&self) -> String {
-        return "NotGate".to_string();
+        "NotGate".to_string()
     }
 }
 
@@ -49,15 +49,15 @@ pub struct XorGate {
 
 impl XorGate {
     pub fn new(input_wires: Vec<Wire>, output_wires: Vec<Wire>) -> Self {
-        return XorGate {
+        XorGate {
             input_wires,
             output_wires,
-        };
+        }
     }
 }
 
 impl GateTrait for XorGate {
     fn create_challenge_script(&self) -> String {
-        return "NotGate".to_string();
+        "NotGate".to_string()
     }
 }

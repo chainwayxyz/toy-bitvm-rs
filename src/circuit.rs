@@ -16,12 +16,12 @@ pub struct Circuit {
 
 impl Circuit {
     pub fn new() -> Self {
-        return Circuit {
+        Circuit {
             input_sizes: vec![32, 32],
             output_sizes: vec![32],
             gates: vec![Box::new(NotGate::new(vec![], vec![]))],
             wires: vec![],
-        };
+        }
     }
 }
 
@@ -54,7 +54,7 @@ impl CircuitTrait for Circuit {
                         let x: usize = words.next().unwrap().parse().unwrap();
                         output_sizes.push(x);
                     }
-                } else if line_str != "" {
+                } else if !line_str.is_empty() {
                     let mut words = line_str.split_whitespace();
                     let noi = words.next().unwrap().parse().unwrap(); // number of inputs
                     let noo = words.next().unwrap().parse().unwrap(); // number of outputs
