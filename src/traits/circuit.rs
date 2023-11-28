@@ -1,4 +1,3 @@
-
 // This trait defines the behavior of a circuit.
 pub trait CircuitTrait {
     fn evaluate(&self);

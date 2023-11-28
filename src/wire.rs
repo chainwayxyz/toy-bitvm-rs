@@ -65,4 +65,3 @@ mod tests {
         // TODO:Test if script returns 1 given input witness with [preimages[0], preimages[1]
     }
 }
-

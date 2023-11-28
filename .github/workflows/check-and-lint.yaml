@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - ekrem/ci
+      - dev
 
 
 name: Check and Lint
