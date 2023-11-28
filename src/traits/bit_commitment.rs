@@ -1,2 +1,1 @@
-pub trait BitCommitmentTrait {
-}
+pub trait BitCommitmentTrait {}
