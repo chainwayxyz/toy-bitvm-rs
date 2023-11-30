@@ -19,10 +19,6 @@ impl NotGate {
 }
 
 impl GateTrait for NotGate {
-    fn create_challenge_script(&self) -> String {
-        "NotGate".to_string()
-    }
-
     fn evaluate(&mut self) {
         let in1 = &mut self.input_wires[0].try_borrow_mut().unwrap();
         let out = &mut self.output_wires[0].try_borrow_mut().unwrap();
@@ -31,18 +27,8 @@ impl GateTrait for NotGate {
         out.selector = Some(w);
     }
 
-    fn set_input_wires(&mut self) {
-        let in1 = &mut self.input_wires[0].try_borrow_mut().unwrap();
-        let in2 = &mut self.input_wires[1].try_borrow_mut().unwrap();
-        in1.selector = Some(true);
-        in2.selector = Some(true);
-    }
-
-    fn print(&self) -> String {
-        format!(
-            "Gate[]: {:?}, {:?}, {:?}",
-            self.input_wires[0], self.input_wires[1], self.output_wires[0]
-        )
+    fn create_challenge_script(&self) -> String {
+        "NotGate".to_string()
     }
 }
 
@@ -61,10 +47,6 @@ impl AndGate {
 }
 
 impl GateTrait for AndGate {
-    fn create_challenge_script(&self) -> String {
-        "NotGate".to_string()
-    }
-
     fn evaluate(&mut self) {
         let in1 = &mut self.input_wires[0].try_borrow_mut().unwrap();
         let in2 = &mut self.input_wires[1].try_borrow_mut().unwrap();
@@ -75,13 +57,8 @@ impl GateTrait for AndGate {
         out.selector = Some(w);
     }
 
-    fn set_input_wires(&mut self) {}
-
-    fn print(&self) -> String {
-        format!(
-            "Gate[]: {:?}, {:?}, {:?}",
-            self.input_wires[0], self.input_wires[1], self.output_wires[0]
-        )
+    fn create_challenge_script(&self) -> String {
+        "AndGate".to_string()
     }
 }
 
@@ -100,10 +77,6 @@ impl XorGate {
 }
 
 impl GateTrait for XorGate {
-    fn create_challenge_script(&self) -> String {
-        "NotGate".to_string()
-    }
-
     fn evaluate(&mut self) {
         let in1 = &mut self.input_wires[0].try_borrow_mut().unwrap();
         let in2 = &mut self.input_wires[1].try_borrow_mut().unwrap();
@@ -114,12 +87,12 @@ impl GateTrait for XorGate {
         out.selector = Some(w);
     }
 
-    fn set_input_wires(&mut self) {}
-
-    fn print(&self) -> String {
-        format!(
-            "Gate[]: {:?}, {:?}, {:?}",
-            self.input_wires[0], self.input_wires[1], self.output_wires[0]
-        )
+    fn create_challenge_script(&self) -> String {
+        "XorGate".to_string()
     }
+}
+
+pub struct OrGate {
+    pub input_wires: Vec<Rc<RefCell<Wire>>>,
+    pub output_wires: Vec<Rc<RefCell<Wire>>>,
 }

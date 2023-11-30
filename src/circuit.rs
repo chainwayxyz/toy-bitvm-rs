@@ -3,11 +3,11 @@ use std::collections::BTreeMap;
 use std::iter::zip;
 use std::rc::Rc;
 
-use crate::utils::read_lines;
 use crate::{
     gates::{AndGate, NotGate, XorGate},
     traits::{circuit::CircuitTrait, gate::GateTrait},
     wire::Wire,
+    utils::read_lines,
 };
 
 pub struct Circuit {
@@ -36,18 +36,15 @@ impl Circuit {
 
 impl CircuitTrait for Circuit {
     fn evaluate(&mut self, inputs: Vec<Vec<bool>>) -> Vec<Vec<bool>> {
-        assert_eq!(inputs.len(), self.input_sizes.len());
+        assert_eq!(inputs.len(), self.input_sizes.len(), "wrong number of inputs");
         let mut combined_inputs = Vec::new();
         for (a, b) in zip(inputs, self.input_sizes.clone()) {
-            assert_eq!(a.len(), b);
+            assert_eq!(a.len(), b, "input lengths do not match for one of the inputs");
             combined_inputs.extend(a);
         }
         for (i, value) in combined_inputs.iter().enumerate() {
             self.wires[i].try_borrow_mut().unwrap().selector = Some(*value);
         }
-        //self.gates[0].set_input_wires();
-        //self.wires[0].try_borrow_mut().unwrap().selector = Some(true);
-        //self.wires[1].try_borrow_mut().unwrap().selector = Some(true);
         for gate in self.gates.as_mut_slice() {
             gate.evaluate();
         }
@@ -116,19 +113,19 @@ impl CircuitTrait for Circuit {
                         .collect();
                     let gate_type = words.next().unwrap();
 
-                    if gate_type.to_lowercase() == "not" {
+                    if vec!["not".to_string(), "inv".to_string()].contains(&gate_type.to_lowercase()) {
                         let gate = NotGate {
                             input_wires,
                             output_wires,
                         };
                         gates.push(Box::new(gate));
-                    } else if gate_type.to_lowercase() == "and" {
+                    } else if vec!["and".to_string()].contains(&gate_type.to_lowercase()) {
                         let gate = AndGate {
                             input_wires,
                             output_wires,
                         };
                         gates.push(Box::new(gate));
-                    } else if gate_type.to_lowercase() == "xor" {
+                    } else if vec!["xor".to_string()].contains(&gate_type.to_lowercase()) {
                         let gate = XorGate {
                             input_wires,
                             output_wires,
@@ -141,10 +138,10 @@ impl CircuitTrait for Circuit {
             }
         }
 
-        assert_eq!(nog, gates.len());
-        assert_eq!(wire_indices.keys().min().unwrap().to_owned(), 0);
-        assert_eq!(wire_indices.keys().max().unwrap().to_owned(), now - 1);
-        assert!(input_sizes.iter().sum::<usize>() + output_sizes.iter().sum::<usize>() <= now);
+        assert_eq!(nog, gates.len(), "wrong number of gates");
+        assert_eq!(wire_indices.keys().min().unwrap().to_owned(), 0, "wires should start 0");
+        assert_eq!(wire_indices.keys().max().unwrap().to_owned(), now - 1, "wires should end at the specified number");
+        assert!(input_sizes.iter().sum::<usize>() + output_sizes.iter().sum::<usize>() <= now, "not enough wires for inputs and outputs");
 
         return Circuit {
             input_sizes,
