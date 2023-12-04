@@ -2,8 +2,9 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::iter::zip;
 use std::rc::Rc;
+use std::str::FromStr;
 
-use bitcoin::{taproot::{TaprootBuilder, TapTree}, script::Builder};
+use bitcoin::{taproot::{TaprootBuilder, TapTree, LeafVersion}, script::Builder, key::XOnlyPublicKey, secp256k1::Secp256k1};
 
 use crate::{
     gates::{AndGate, NotGate, XorGate},
@@ -158,24 +159,42 @@ impl CircuitTrait for Circuit {
 
     fn generate_commitment_tree(&self) {}
 
-    fn generate_anti_contradiction_tree(&self) -> TapTree {
-        let empty_script = Builder::new().into_script();
+    fn generate_anti_contradiction_tree(&self) {
         let mut taproot = TaprootBuilder::new();
         let n = self.wires.len();
         assert!(n > 1, "only one wire is not allowed");
         let m = (n - 1).ilog2() + 1;
         assert!(m < 256, "too deep tree");
-        let fill = (2 as usize).pow(m) - n;
+        let k = (2 as usize).pow(m) - n;
+        for (i, wire_rcref) in self.wires.iter().enumerate() {
+            let wire = wire_rcref.try_borrow_mut().unwrap();
+            let script = wire.generate_anti_contradiction_script();
+            if i < n - k {
+                taproot = taproot.add_leaf(m as u8, script).unwrap();
+            }
+            else {
+                taproot = taproot.add_leaf((m - 1) as u8, script).unwrap();
+            }
+            
+            // taproot.add_leaf(0, script).unwrap();
+        }
+        let secp = Secp256k1::verification_only();
+        let internal_key = XOnlyPublicKey::from_str("93c7378d96518a75448821c4f7c8f4bae7ce60f804d03d1f0628dd5dd0f5de51").unwrap();
+        let tree_info = taproot.finalize(&secp, internal_key).unwrap();
+        let output_key = tree_info.output_key();
+
         for wire_rcref in self.wires.iter() {
             let wire = wire_rcref.try_borrow_mut().unwrap();
             let script = wire.generate_anti_contradiction_script();
-            taproot = taproot.add_leaf(m as u8, script).unwrap();
-            // taproot.add_leaf(0, script).unwrap();
+            let ver_script = (script, LeafVersion::TapScript);
+            let ctrl_block = tree_info.control_block(&ver_script).unwrap();
+            assert!(ctrl_block.verify_taproot_commitment(
+                &secp,
+                output_key.to_inner(),
+                &ver_script.0
+            ));
         }
-        for _ in 0..fill {
-            taproot = taproot.add_leaf(m as u8, empty_script.clone()).unwrap();
-        }
-        return taproot.try_into_taptree().unwrap();
+        //println!("{:?}", a);
     }
 }
 

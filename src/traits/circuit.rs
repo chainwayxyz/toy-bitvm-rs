@@ -1,4 +1,4 @@
-use bitcoin::taproot::TapTree;
+//use bitcoin::taproot::TapTree;
 
 // This trait defines the behavior of a circuit.
 pub trait CircuitTrait {
@@ -8,5 +8,5 @@ pub trait CircuitTrait {
 
     fn generate_commitment_tree(&self);
 
-    fn generate_anti_contradiction_tree(&self) -> TapTree;
+    fn generate_anti_contradiction_tree(&self);
 }

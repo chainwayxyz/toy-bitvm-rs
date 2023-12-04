@@ -59,7 +59,6 @@ fn taptest() {
 fn main() {
     println!("Hello, world!");
     //taptest();
-    let circuit = Circuit::from_bristol("bristol/add.txt");
-    let taptree = circuit.generate_anti_contradiction_tree();
-    println!("taptree: {}", taptree.script_leaves().len());
+    let circuit = Circuit::from_bristol("bristol/test.txt");
+    circuit.generate_anti_contradiction_tree();
 }
