@@ -3,9 +3,11 @@ use std::collections::BTreeMap;
 use std::iter::zip;
 use std::rc::Rc;
 
+use bitcoin::{taproot::{TaprootBuilder, TapTree}, script::Builder};
+
 use crate::{
     gates::{AndGate, NotGate, XorGate},
-    traits::{circuit::CircuitTrait, gate::GateTrait},
+    traits::{circuit::CircuitTrait, gate::GateTrait, wire::WireTrait},
     wire::Wire,
     utils::read_lines,
 };
@@ -155,6 +157,26 @@ impl CircuitTrait for Circuit {
     }
 
     fn generate_commitment_tree(&self) {}
+
+    fn generate_anti_contradiction_tree(&self) -> TapTree {
+        let empty_script = Builder::new().into_script();
+        let mut taproot = TaprootBuilder::new();
+        let n = self.wires.len();
+        assert!(n > 1, "only one wire is not allowed");
+        let m = (n - 1).ilog2() + 1;
+        assert!(m < 256, "too deep tree");
+        let fill = (2 as usize).pow(m) - n;
+        for wire_rcref in self.wires.iter() {
+            let wire = wire_rcref.try_borrow_mut().unwrap();
+            let script = wire.generate_anti_contradiction_script();
+            taproot = taproot.add_leaf(m as u8, script).unwrap();
+            // taproot.add_leaf(0, script).unwrap();
+        }
+        for _ in 0..fill {
+            taproot = taproot.add_leaf(m as u8, empty_script.clone()).unwrap();
+        }
+        return taproot.try_into_taptree().unwrap();
+    }
 }
 
 #[cfg(test)]
