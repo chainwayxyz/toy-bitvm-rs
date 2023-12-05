@@ -1,7 +1,7 @@
 use bitcoin::absolute::{Height, LockTime};
 
-use bitcoin::consensus::Decodable;
 use bitcoin::consensus::encode::serialize_hex;
+use bitcoin::consensus::Decodable;
 use bitcoin::hash_types::Txid;
 use bitcoin::sighash::SighashCache;
 use bitcoin::{Amount, OutPoint, ScriptBuf, Transaction, TxIn, TxOut, Witness};
@@ -79,7 +79,7 @@ fn main() {
             value: Amount::from_sat(amt - 500),
         }],
     };
-    
+
     let prevouts = vec![TxOut {
         script_pubkey: paul.address.script_pubkey(),
         value: Amount::from_sat(amt),
@@ -100,7 +100,6 @@ fn main() {
     let sig = paul.sign(sig_hash);
     let witness = sighash_cache.witness_mut(0).unwrap();
     witness.push(sig.as_ref());
-
 
     println!("sigHash : {:?}", sig_hash);
     println!("tx : {:?}", tx);

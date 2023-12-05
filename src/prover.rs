@@ -30,7 +30,7 @@ impl Prover {
         let keypair = Keypair::from_secret_key(&secp, &elems.0);
         let xonly = XOnlyPublicKey::from_keypair(&keypair);
         let address = Address::p2tr(&secp, xonly.0, None, bitcoin::Network::Signet);
-        
+
         Prover {
             secp,
             keypair,
@@ -43,7 +43,13 @@ impl Prover {
     pub fn sign(&self, sighash: TapSighash) -> Signature {
         self.secp.sign_schnorr_with_rng(
             &Message::from_digest_slice(sighash.as_byte_array()).expect("should be hash"),
-        &self.keypair.add_xonly_tweak(&self.secp, &TapTweakHash::from_key_and_tweak(self.public_key, None).to_scalar()).unwrap(),
+            &self
+                .keypair
+                .add_xonly_tweak(
+                    &self.secp,
+                    &TapTweakHash::from_key_and_tweak(self.public_key, None).to_scalar(),
+                )
+                .unwrap(),
             &mut rand::thread_rng(),
         )
     }
