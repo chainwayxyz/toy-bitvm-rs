@@ -4,8 +4,9 @@ use std::iter::zip;
 use std::rc::Rc;
 use std::str::FromStr;
 
-use bitcoin::{taproot::{TaprootBuilder, TapTree, LeafVersion}, script::Builder, key::XOnlyPublicKey, secp256k1::Secp256k1};
+use bitcoin::{taproot::{TaprootBuilder, LeafVersion}, script::Builder, key::XOnlyPublicKey, secp256k1::Secp256k1, Network};
 use bitcoin::opcodes::all::*;
+use bitcoin::Address;
 
 use crate::{
     gates::{AndGate, NotGate, XorGate},
@@ -160,7 +161,7 @@ impl CircuitTrait for Circuit {
 
     fn generate_bit_commitment_tree(&self) {}
 
-    fn generate_anti_contradiction_tree(&self, prover_pk: XOnlyPublicKey) {
+    fn generate_anti_contradiction_tree(&self, prover_pk: XOnlyPublicKey, verifier_pk: XOnlyPublicKey) -> Address {
         let mut taproot = TaprootBuilder::new();
 
         let n = self.wires.len();
@@ -180,7 +181,7 @@ impl CircuitTrait for Circuit {
 
         for (i, wire_rcref) in self.wires.iter().enumerate() {
             let wire = wire_rcref.try_borrow_mut().unwrap();
-            let script = wire.generate_anti_contradiction_script();
+            let script = wire.generate_anti_contradiction_script(verifier_pk);
             if i < n - k {
                 taproot = taproot.add_leaf((m + 1) as u8, script).unwrap();
             }
@@ -197,7 +198,7 @@ impl CircuitTrait for Circuit {
 
         for wire_rcref in self.wires.iter() {
             let wire = wire_rcref.try_borrow_mut().unwrap();
-            let script = wire.generate_anti_contradiction_script();
+            let script = wire.generate_anti_contradiction_script(verifier_pk);
             let ver_script = (script, LeafVersion::TapScript);
             let ctrl_block = tree_info.control_block(&ver_script).unwrap();
             assert!(ctrl_block.verify_taproot_commitment(
@@ -215,14 +216,15 @@ impl CircuitTrait for Circuit {
             &p10_ver_script.0
         ));
 
-        let x = tree_info.merkle_root().unwrap();
-        
-        println!("merkle root: {:?}", x);
+        let address = Address::p2tr(&secp, internal_key, tree_info.merkle_root(), Network::Bitcoin);
+        return address;
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use rand::thread_rng;
+
     use super::*;
     use crate::utils::{bool_array_to_number, number_to_bool_array};
 
@@ -249,5 +251,16 @@ mod tests {
         let o = circuit.evaluate(vec![b1, b2]);
         let output = bool_array_to_number(o.get(0).unwrap().to_vec());
         assert_eq!(output, a1 + a2);
+    }
+
+    #[test]
+    fn test_circuit_aca() {
+        let circuit = Circuit::from_bristol("bristol/test.txt");
+        let secp = Secp256k1::new();
+        let mut rng = thread_rng();
+        let (_verifier_sk, verifier_pk) = secp.generate_keypair(&mut rng);
+        let (_prover_sk, prover_pk) = secp.generate_keypair(&mut rng);
+
+        let _address = circuit.generate_anti_contradiction_tree(prover_pk.into(), verifier_pk.into());
     }
 }

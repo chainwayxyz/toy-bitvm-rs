@@ -1,6 +1,7 @@
 use std::fmt::Debug;
 
 use crate::traits::wire::WireTrait;
+use bitcoin::XOnlyPublicKey;
 use bitcoin::blockdata::script::Builder;
 use bitcoin::hashes::sha256;
 use bitcoin::hashes::Hash;
@@ -48,14 +49,16 @@ impl Wire {
 }
 
 impl WireTrait for Wire {
-    fn generate_anti_contradiction_script(&self) -> ScriptBuf {
+    fn generate_anti_contradiction_script(&self, _verifier_pk: XOnlyPublicKey) -> ScriptBuf {
         Builder::new()
             .push_opcode(OP_SHA256)
             .push_slice(self.hashes[0])
             .push_opcode(OP_EQUALVERIFY)
             .push_opcode(OP_SHA256)
             .push_slice(self.hashes[1])
-            .push_opcode(OP_EQUAL)
+            .push_opcode(OP_EQUALVERIFY)
+            //.push_x_only_key(&verifier_pk)
+            //.push_opcode(OP_CHECKSIGVERIFY)
             .into_script()
     }
 }
@@ -65,7 +68,9 @@ mod tests {
     use super::*;
     use bitcoin::TapLeafHash;
     use bitcoin::Transaction;
+    use bitcoin::secp256k1::Secp256k1;
     use bitcoin_scriptexec::*;
+    use rand::thread_rng;
 
     #[test]
     fn test_wire() {
@@ -77,7 +82,11 @@ mod tests {
     #[test]
     fn test_generate_anti_contradiction_script() {
         let wire = Wire::new(0);
-        let script = wire.generate_anti_contradiction_script();
+        let secp = Secp256k1::new();
+        let mut rng = thread_rng();
+        let (_sk, pk) = secp.generate_keypair(&mut rng);
+        let verifier_pk = XOnlyPublicKey::from(pk);
+        let script = wire.generate_anti_contradiction_script(verifier_pk);
 
         let preimages_vec = if let Some(preimages) = wire.preimages {
             vec![preimages[1].to_vec(), preimages[0].to_vec()]
@@ -112,7 +121,6 @@ mod tests {
 
         let res = exec.result().unwrap().clone();
 
-        println!("{:?}", res);
         assert_eq!(res.error, None);
     }
 }

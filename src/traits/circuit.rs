@@ -1,6 +1,6 @@
 //use bitcoin::taproot::TapTree;
 
-use bitcoin::XOnlyPublicKey;
+use bitcoin::{XOnlyPublicKey, Address};
 
 // This trait defines the behavior of a circuit.
 pub trait CircuitTrait {
@@ -10,5 +10,5 @@ pub trait CircuitTrait {
 
     fn generate_bit_commitment_tree(&self);
 
-    fn generate_anti_contradiction_tree(&self, prover_pk: XOnlyPublicKey);
+    fn generate_anti_contradiction_tree(&self, prover_pk: XOnlyPublicKey, verifier_pk: XOnlyPublicKey) -> Address;
 }
