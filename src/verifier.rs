@@ -28,7 +28,7 @@ impl Verifier {
 
     pub fn get_public_key(&self) -> XOnlyPublicKey {
         self.public_key
-    }   
+    }
 }
 
 #[cfg(test)]
