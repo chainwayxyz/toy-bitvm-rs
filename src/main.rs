@@ -1,5 +1,6 @@
 use bitcoin::absolute::{Height, LockTime};
 
+use bitcoin::consensus::Decodable;
 use bitcoin::consensus::encode::serialize_hex;
 use bitcoin::hash_types::Txid;
 use bitcoin::sighash::SighashCache;
@@ -9,10 +10,20 @@ use bitvmrs::utils::{bool_array_to_number, number_to_bool_array};
 use bitvmrs::verifier::Verifier;
 use bitvmrs::{circuit::Circuit, traits::circuit::CircuitTrait};
 
+use std::borrow::BorrowMut;
 use std::io::{self, Write}; // Import necessary modules
-
+pub fn parse_hex_transaction(
+    tx_hex: &str,
+) -> Result<Transaction, bitcoin::consensus::encode::Error> {
+    if let Ok(reader) = hex::decode(tx_hex) {
+        Transaction::consensus_decode(&mut &reader[..])
+    } else {
+        Err(bitcoin::consensus::encode::Error::ParseFailed(
+            "Could not decode hex",
+        ))
+    }
+}
 fn main() {
-    // println!("Hello, world!");
     let mut circuit = Circuit::from_bristol("bristol/add.txt");
     let a1 = 633;
     let a2 = 15;
@@ -53,12 +64,12 @@ fn main() {
     // let vout: u32 = "0".parse().unwrap();
 
     let mut tx = Transaction {
-        version: bitcoin::transaction::Version::ONE,
+        version: bitcoin::transaction::Version::TWO,
         lock_time: LockTime::from(Height::MIN),
         input: vec![TxIn {
             previous_output: OutPoint { txid, vout },
             script_sig: ScriptBuf::new(),
-            sequence: bitcoin::transaction::Sequence::MAX,
+            sequence: bitcoin::transaction::Sequence::ENABLE_RBF_NO_LOCKTIME,
             witness: Witness::new(),
         }],
         output: vec![TxOut {
@@ -68,12 +79,16 @@ fn main() {
             value: Amount::from_sat(amt - 500),
         }],
     };
+    
     let prevouts = vec![TxOut {
         script_pubkey: paul.address.script_pubkey(),
         value: Amount::from_sat(amt),
     }];
+
+    println!("prevout: {:?}", prevouts);
+    let mut sighash_cache = SighashCache::new(tx.borrow_mut());
     // TODO: add support for signing with a keypair
-    let sig_hash = SighashCache::new(tx.clone())
+    let sig_hash = sighash_cache
         .taproot_key_spend_signature_hash(
             0,
             &bitcoin::sighash::Prevouts::All(&prevouts),
@@ -83,12 +98,10 @@ fn main() {
 
     // Witness::from_slice(sigHash)
     let sig = paul.sign(sig_hash);
+    let witness = sighash_cache.witness_mut(0).unwrap();
+    witness.push(sig.as_ref());
 
-    let x = sig.as_ref();
 
-    let witness = Witness::from_slice(&[x]);
-
-    tx.input[0].witness = witness;
     println!("sigHash : {:?}", sig_hash);
     println!("tx : {:?}", tx);
     println!("txid : {:?}", tx.txid());
