@@ -251,7 +251,7 @@ impl CircuitTrait for Circuit {
             &secp,
             internal_key,
             tree_info.merkle_root(),
-            Network::Bitcoin,
+            Network::Signet,
         )
     }
 }
