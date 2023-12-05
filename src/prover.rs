@@ -26,3 +26,15 @@ impl Prover {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_prover() {
+        let prover = Prover::new();
+        println!("secret key: {:?}", prover.secret_key);
+        println!("public key: {:?}", prover.public_key);
+    }
+}
