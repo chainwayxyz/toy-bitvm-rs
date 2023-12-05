@@ -25,6 +25,10 @@ impl Prover {
             public_key: xonly.0,
         }
     }
+
+    pub fn get_public_key(&self) -> XOnlyPublicKey {
+        self.public_key
+    }
 }
 
 #[cfg(test)]
@@ -36,5 +40,12 @@ mod tests {
         let prover = Prover::new();
         println!("secret key: {:?}", prover.secret_key);
         println!("public key: {:?}", prover.public_key);
+    }
+
+    #[test]
+    fn test_prover_get_public_key() {
+        let prover = Prover::new();
+        let public_key = prover.get_public_key();
+        println!("public key: {:?}", public_key);
     }
 }

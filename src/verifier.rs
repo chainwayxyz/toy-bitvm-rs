@@ -25,6 +25,10 @@ impl Verifier {
             public_key: xonly.0,
         }
     }
+
+    pub fn get_public_key(&self) -> XOnlyPublicKey {
+        self.public_key
+    }   
 }
 
 #[cfg(test)]
@@ -36,5 +40,12 @@ mod tests {
         let verifier = Verifier::new();
         println!("secret key: {:?}", verifier.secret_key);
         println!("public key: {:?}", verifier.public_key);
+    }
+
+    #[test]
+    fn test_verifier_get_public_key() {
+        let verifier = Verifier::new();
+        let public_key = verifier.get_public_key();
+        println!("public key: {:?}", public_key);
     }
 }
