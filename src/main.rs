@@ -1,4 +1,5 @@
 use bitcoin::absolute::{Height, LockTime};
+
 use bitcoin::hash_types::Txid;
 use bitcoin::sighash::SighashCache;
 use bitcoin::{Amount, OutPoint, ScriptBuf, Transaction, TxIn, TxOut, Witness};
@@ -6,6 +7,7 @@ use bitvmrs::prover::Prover;
 use bitvmrs::utils::{bool_array_to_number, number_to_bool_array};
 use bitvmrs::verifier::Verifier;
 use bitvmrs::{circuit::Circuit, traits::circuit::CircuitTrait};
+use bitcoin::consensus::encode::serialize_hex;
 
 use std::io::{self, Write}; // Import necessary modules
 
@@ -90,4 +92,7 @@ fn main() {
     println!("sigHash : {:?}", sig_hash);
     println!("tx : {:?}", tx);
     println!("txid : {:?}", tx.txid());
+    println!("txid : {:?}", serialize_hex(&tx));
+    // let mut txid_str: [u8];
+    // tx.consensus_encode().unwrap();
 }
