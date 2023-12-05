@@ -26,3 +26,15 @@ impl Verifier {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_verifier() {
+        let verifier = Verifier::new();
+        println!("secret key: {:?}", verifier.secret_key);
+        println!("public key: {:?}", verifier.public_key);
+    }
+}
