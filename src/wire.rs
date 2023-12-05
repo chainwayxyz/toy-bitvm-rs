@@ -1,12 +1,12 @@
 use std::fmt::Debug;
 
 use crate::traits::wire::WireTrait;
-use bitcoin::XOnlyPublicKey;
 use bitcoin::blockdata::script::Builder;
 use bitcoin::hashes::sha256;
 use bitcoin::hashes::Hash;
 use bitcoin::opcodes::all::*;
 use bitcoin::ScriptBuf;
+use bitcoin::XOnlyPublicKey;
 use rand::Rng;
 
 #[derive(Clone)]
@@ -66,9 +66,9 @@ impl WireTrait for Wire {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use bitcoin::secp256k1::Secp256k1;
     use bitcoin::TapLeafHash;
     use bitcoin::Transaction;
-    use bitcoin::secp256k1::Secp256k1;
     use bitcoin_scriptexec::*;
     use rand::thread_rng;
 
