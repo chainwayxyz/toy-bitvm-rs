@@ -1,0 +1,28 @@
+// use bitcoin::Network;
+use bitcoin::secp256k1::{rand, Keypair, Secp256k1, SecretKey, XOnlyPublicKey};
+// use bitcoin::PublicKey;
+
+pub struct Prover {
+    pub secret_key: SecretKey,
+    pub public_key: XOnlyPublicKey,
+}
+
+impl Default for Prover {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Prover {
+    pub fn new() -> Self {
+        let secp = Secp256k1::new();
+        let mut rng = rand::thread_rng();
+        let elems = secp.generate_keypair(&mut rng);
+        let keypair = Keypair::from_secret_key(&secp, &elems.0);
+        let xonly = XOnlyPublicKey::from_keypair(&keypair);
+        Prover {
+            secret_key: keypair.secret_key(),
+            public_key: xonly.0,
+        }
+    }
+}
