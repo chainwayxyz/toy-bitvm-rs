@@ -8,7 +8,7 @@ use bitcoin::{
 };
 // use bitcoin::PublicKey;
 
-pub struct Prover {
+pub struct Actor {
     secp: Secp256k1<All>,
     keypair: Keypair,
     pub secret_key: SecretKey,
@@ -16,13 +16,13 @@ pub struct Prover {
     pub address: Address,
 }
 
-impl Default for Prover {
+impl Default for Actor {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Prover {
+impl Actor {
     pub fn new() -> Self {
         let secp: Secp256k1<All> = Secp256k1::new();
         let mut rng = rand::thread_rng();
@@ -31,7 +31,7 @@ impl Prover {
         let xonly = XOnlyPublicKey::from_keypair(&keypair);
         let address = Address::p2tr(&secp, xonly.0, None, bitcoin::Network::Signet);
 
-        Prover {
+        Actor {
             secp,
             keypair,
             secret_key: keypair.secret_key(),
@@ -61,7 +61,7 @@ mod tests {
 
     #[test]
     fn test_prover() {
-        let prover = Prover::new();
+        let prover = Actor::new();
         println!("secret key: {:?}", prover.secret_key);
         println!("public key: {:?}", prover.public_key);
     }

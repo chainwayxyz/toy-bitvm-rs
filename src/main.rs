@@ -5,10 +5,9 @@ use bitcoin::consensus::Decodable;
 use bitcoin::hash_types::Txid;
 use bitcoin::sighash::SighashCache;
 use bitcoin::{Amount, OutPoint, ScriptBuf, Transaction, TxIn, TxOut, Witness};
-use bitvmrs::prover::Prover;
-use bitvmrs::utils::{bool_array_to_number, number_to_bool_array};
-use bitvmrs::verifier::Verifier;
-use bitvmrs::{circuit::Circuit, traits::circuit::CircuitTrait};
+use bitvm::actor::Actor;
+use bitvm::utils::{bool_array_to_number, number_to_bool_array};
+use bitvm::{circuit::Circuit, traits::circuit::CircuitTrait};
 
 use std::borrow::BorrowMut;
 use std::io::{self, Write}; // Import necessary modules
@@ -35,8 +34,8 @@ fn main() {
     println!("output : {:?}", output);
     assert_eq!(output, a1 + a2);
 
-    let paul = Prover::new();
-    let vicky = Verifier::new();
+    let paul = Actor::new();
+    let vicky = Actor::new();
     let amt = 10_000;
 
     println!("Send {} satoshis to Public Key: {}", amt, paul.address);
