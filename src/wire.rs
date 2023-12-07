@@ -4,6 +4,7 @@ use crate::traits::wire::WireTrait;
 use bitcoin::blockdata::script::Builder;
 use bitcoin::hashes::sha256;
 use bitcoin::hashes::Hash;
+// use bitcoin::opcodes::OP_0;
 use bitcoin::opcodes::all::*;
 use bitcoin::ScriptBuf;
 use bitcoin::XOnlyPublicKey;
@@ -61,6 +62,22 @@ impl WireTrait for Wire {
             //.push_opcode(OP_CHECKSIGVERIFY)
             .into_script()
     }
+
+    fn generate_bit_commitment_script(&self, _prover_pk: XOnlyPublicKey) -> ScriptBuf {
+        Builder::new()
+            .push_opcode(OP_IF)
+            .push_opcode(OP_SHA256)
+            .push_slice(self.hashes[0])
+            .push_opcode(OP_EQUALVERIFY)
+            .push_slice([0x00])
+            .push_opcode(OP_ELSE)
+            .push_opcode(OP_SHA256)
+            .push_slice(self.hashes[1])
+            .push_opcode(OP_EQUALVERIFY)
+            .push_slice([0x01])
+            .push_opcode(OP_ENDIF)
+            .into_script()
+    }
 }
 
 #[cfg(test)]
@@ -87,6 +104,51 @@ mod tests {
         let (_sk, pk) = secp.generate_keypair(&mut rng);
         let verifier_pk = XOnlyPublicKey::from(pk);
         let script = wire.generate_anti_contradiction_script(verifier_pk);
+
+        let preimages_vec = if let Some(preimages) = wire.preimages {
+            vec![preimages[1].to_vec(), preimages[0].to_vec()]
+        } else {
+            panic!("wire preimages are None")
+        };
+
+        let mut exec = Exec::new(
+            ExecCtx::Tapscript,
+            Options::default(),
+            TxTemplate {
+                tx: Transaction {
+                    version: bitcoin::transaction::Version::TWO,
+                    lock_time: bitcoin::locktime::absolute::LockTime::ZERO,
+                    input: vec![],
+                    output: vec![],
+                },
+                prevouts: vec![],
+                input_idx: 0,
+                taproot_annex_scriptleaf: Some((TapLeafHash::all_zeros(), None)),
+            },
+            script,
+            preimages_vec,
+        )
+        .expect("error creating exec");
+
+        loop {
+            if exec.exec_next().is_err() {
+                break;
+            }
+        }
+
+        let res = exec.result().unwrap().clone();
+
+        assert_eq!(res.error, None);
+    }
+
+    #[test]
+    fn test_generate_bit_commitment_script() {
+        let wire = Wire::new(0);
+        let secp = Secp256k1::new();
+        let mut rng = thread_rng();
+        let (_sk, pk) = secp.generate_keypair(&mut rng);
+        let verifier_pk = XOnlyPublicKey::from(pk);
+        let script = wire.generate_bit_commitment_script(verifier_pk);
 
         let preimages_vec = if let Some(preimages) = wire.preimages {
             vec![preimages[1].to_vec(), preimages[0].to_vec()]

@@ -14,6 +14,8 @@ use bitcoin::{
     Network,
 };
 
+// use crate::traits::prover;
+// use crate::traits::verifier;
 use crate::{
     gates::{AndGate, NotGate, XorGate},
     traits::{circuit::CircuitTrait, gate::GateTrait, wire::WireTrait},
@@ -184,7 +186,74 @@ impl CircuitTrait for Circuit {
         };
     }
 
-    fn generate_bit_commitment_tree(&self) {}
+    fn generate_bit_commitment_tree(
+        &self,
+        prover_pk: XOnlyPublicKey,
+        verifier_pk: XOnlyPublicKey,
+    ) -> Address {
+        let mut taproot = TaprootBuilder::new();
+
+        let n = self.wires.len();
+        assert!(n > 1, "only one wire is not allowed");
+
+        let m = (n - 1).ilog2() + 1;
+        assert!(m < 256, "too deep tree");
+
+        let k = 2_usize.pow(m) - n;
+
+        let v10_script = Builder::new()
+            .push_int(10)
+            .push_opcode(OP_CSV)
+            .push_x_only_key(&verifier_pk)
+            .push_opcode(OP_CHECKSIG)
+            .into_script();
+
+        for (i, wire_rcref) in self.wires.iter().enumerate() {
+            let wire = wire_rcref.try_borrow_mut().unwrap();
+            let script = wire.generate_bit_commitment_script(prover_pk);
+            if i < n - k {
+                taproot = taproot.add_leaf((m + 1) as u8, script).unwrap();
+            } else {
+                taproot = taproot.add_leaf(m as u8, script).unwrap();
+            }
+        }
+        taproot = taproot.add_leaf(1, v10_script.clone()).unwrap();
+
+        let secp = Secp256k1::verification_only();
+        let internal_key = XOnlyPublicKey::from_str(
+            "93c7378d96518a75448821c4f7c8f4bae7ce60f804d03d1f0628dd5dd0f5de51",
+        )
+        .unwrap();
+        let tree_info = taproot.finalize(&secp, internal_key).unwrap();
+        let output_key = tree_info.output_key();
+
+        for wire_rcref in self.wires.iter() {
+            let wire = wire_rcref.try_borrow_mut().unwrap();
+            let script = wire.generate_bit_commitment_script(prover_pk);
+            let ver_script = (script, LeafVersion::TapScript);
+            let ctrl_block = tree_info.control_block(&ver_script).unwrap();
+            assert!(ctrl_block.verify_taproot_commitment(
+                &secp,
+                output_key.to_inner(),
+                &ver_script.0
+            ));
+        }
+
+        let v10_ver_script = (v10_script, LeafVersion::TapScript);
+        let p10_ctrl_block = tree_info.control_block(&v10_ver_script).unwrap();
+        assert!(p10_ctrl_block.verify_taproot_commitment(
+            &secp,
+            output_key.to_inner(),
+            &v10_ver_script.0
+        ));
+
+        Address::p2tr(
+            &secp,
+            internal_key,
+            tree_info.merkle_root(),
+            Network::Signet,
+        )
+    }
 
     fn generate_anti_contradiction_tree(
         &self,
@@ -298,5 +367,16 @@ mod tests {
 
         let _address =
             circuit.generate_anti_contradiction_tree(prover_pk.into(), verifier_pk.into());
+    }
+
+    #[test]
+    fn test_circuit_bca() {
+        let circuit = Circuit::from_bristol("bristol/test.txt");
+        let secp = Secp256k1::new();
+        let mut rng = thread_rng();
+        let (_verifier_sk, verifier_pk) = secp.generate_keypair(&mut rng);
+        let (_prover_sk, prover_pk) = secp.generate_keypair(&mut rng);
+
+        let _address = circuit.generate_bit_commitment_tree(prover_pk.into(), verifier_pk.into());
     }
 }

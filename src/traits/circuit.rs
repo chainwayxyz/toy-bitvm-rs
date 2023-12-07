@@ -8,7 +8,11 @@ pub trait CircuitTrait {
 
     fn from_bristol(file: &str) -> Self;
 
-    fn generate_bit_commitment_tree(&self);
+    fn generate_bit_commitment_tree(
+        &self,
+        prover_pk: XOnlyPublicKey,
+        verifier_pk: XOnlyPublicKey,
+    ) -> Address;
 
     fn generate_anti_contradiction_tree(
         &self,
