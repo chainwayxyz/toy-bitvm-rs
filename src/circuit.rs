@@ -276,7 +276,8 @@ mod tests {
 
         let challenge_hashes = verifier.generate_challenge_hashes(circuit.num_gates());
 
-        let (_address, tree_info) = circuit.generate_challenge_tree(&secp, &prover, &verifier, challenge_hashes);
+        let (_address, tree_info) =
+            circuit.generate_challenge_tree(&secp, &prover, &verifier, challenge_hashes);
         for wire_rcref in circuit.wires.iter() {
             let wire = wire_rcref.try_borrow_mut().unwrap();
             let script = wire.generate_anti_contradiction_script(verifier.public_key);

@@ -7,8 +7,6 @@ use bitcoin::secp256k1::{All, Secp256k1};
 use bitcoin::taproot::{TaprootBuilder, TaprootSpendInfo};
 use bitcoin::{Address, ScriptBuf, XOnlyPublicKey};
 
-
-
 pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
     P: AsRef<Path>,
