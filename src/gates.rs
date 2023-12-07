@@ -1,4 +1,6 @@
-use bitcoin::opcodes::all::{OP_EQUALVERIFY, OP_FROMALTSTACK, OP_NOT, OP_TOALTSTACK, OP_SHA256, OP_AND, OP_XOR};
+use bitcoin::opcodes::all::{
+    OP_AND, OP_EQUALVERIFY, OP_FROMALTSTACK, OP_NOT, OP_SHA256, OP_TOALTSTACK, OP_XOR,
+};
 use bitcoin::script::Builder;
 use bitcoin::ScriptBuf;
 
@@ -160,12 +162,11 @@ impl GateTrait for XorGate {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitcoin::hashes::Hash;
     use bitcoin::hashes::sha256;
+    use bitcoin::hashes::Hash;
     use bitcoin::TapLeafHash;
     use bitcoin::Transaction;
     use bitcoin_scriptexec::*;
@@ -175,9 +176,9 @@ mod tests {
     fn test_not_gate() {
         let input_wire_0 = Wire::new(0);
         // get the input wire preimages, it should not be option, but a vector of preimages
-        let input_wire_0_preimages = input_wire_0.preimages.clone().unwrap();
+        let input_wire_0_preimages = input_wire_0.preimages.unwrap();
         let output_wire_0 = Wire::new(1);
-        let output_wire_0_preimages = output_wire_0.preimages.clone().unwrap();
+        let output_wire_0_preimages = output_wire_0.preimages.unwrap();
 
         let not_gate = NotGate::new(
             vec![Rc::new(RefCell::new(input_wire_0))],
@@ -190,15 +191,12 @@ mod tests {
 
         let lock_hash = sha256::Hash::hash(&lock_preimage).to_byte_array();
 
-
         let script = not_gate.create_response_script(lock_hash);
-
-        
 
         let solution_01_preimages = vec![
             input_wire_0_preimages[0].clone().to_vec(),
             output_wire_0_preimages[1].clone().to_vec(),
-            lock_preimage.to_vec()
+            lock_preimage.to_vec(),
         ];
         let mut exec_01 = Exec::new(
             ExecCtx::Tapscript,
@@ -231,12 +229,10 @@ mod tests {
 
         assert_eq!(res.error, None);
 
-
-
         let solution_01_preimages = vec![
             input_wire_0_preimages[0].clone().to_vec(),
             output_wire_0_preimages[0].clone().to_vec(),
-            lock_preimage.to_vec()
+            lock_preimage.to_vec(),
         ];
         let mut exec_00 = Exec::new(
             ExecCtx::Tapscript,
@@ -257,19 +253,14 @@ mod tests {
         )
         .expect("error creating exec");
 
-        let mut has_error = false;
+        
 
-        loop {
+        let has_error = loop {
             if exec_00.exec_next().is_err() {
-
                 println!("error: {:?}", exec_00.exec_next().err());
-                has_error = true;
-                break;
+                break true;
             }
-        }
-        assert_eq!(has_error, true);
-
-
-
+        };
+        assert!(has_error);
     }
 }
