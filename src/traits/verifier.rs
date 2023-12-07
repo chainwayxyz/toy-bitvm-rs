@@ -1,3 +1,5 @@
+use bitcoin::Address;
+
 pub trait VerifierTrait {
-    fn verify(&self) -> bool;
+    fn create_challenge_tree(&self, circuit_size: usize) -> Address;
 }

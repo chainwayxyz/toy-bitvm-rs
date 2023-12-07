@@ -1,13 +1,16 @@
 use std::str::FromStr;
 
 use bitcoin::blockdata::script::Builder;
-use bitcoin::taproot::LeafVersion;
-use bitcoin::{Network, Address};
-use bitcoin::opcodes::all::*;
-use bitcoin::{secp256k1::{rand, All, Keypair, Secp256k1, SecretKey, XOnlyPublicKey}, taproot::TaprootBuilder};
-use rand::Rng;
 use bitcoin::hashes::sha256;
 use bitcoin::hashes::Hash;
+use bitcoin::opcodes::all::*;
+use bitcoin::taproot::LeafVersion;
+use bitcoin::{
+    secp256k1::{rand, All, Keypair, Secp256k1, SecretKey, XOnlyPublicKey},
+    taproot::TaprootBuilder,
+};
+use bitcoin::{Address, Network};
+use rand::Rng;
 // use bitcoin::PublicKey;
 
 pub struct Verifier {
@@ -49,16 +52,16 @@ impl Verifier {
         let mut hash_vec = Vec::new();
         let k = 2_usize.pow(m) - circuit_size;
         for i in 0..circuit_size {
-            let temp: [u8; 32]  = rng.gen();
+            let temp: [u8; 32] = rng.gen();
             let temp_hash = sha256::Hash::hash(&temp).to_byte_array();
             hash_vec.push(temp_hash);
             let temp_script = Builder::new()
                 .push_opcode(OP_SHA256)
                 .push_slice(temp)
                 .push_opcode(OP_EQUALVERIFY)
-                .into_script(); 
+                .into_script();
             println!("temp_script: {:?}", temp_script);
-            
+
             if i < circuit_size - k {
                 taproot = taproot.add_leaf((m + 1) as u8, temp_script).unwrap();
             } else {
@@ -95,12 +98,15 @@ impl Verifier {
             &v10_ver_script.0
         ));
 
-       (Address::p2tr(
-            &secp,
-            internal_key,
-            tree_info.merkle_root(),
-            Network::Signet,
-        ), hash_vec)
+        (
+            Address::p2tr(
+                &secp,
+                internal_key,
+                tree_info.merkle_root(),
+                Network::Signet,
+            ),
+            hash_vec,
+        )
     }
 }
 
