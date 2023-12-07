@@ -17,7 +17,7 @@ pub struct Verifier {
     // keypair: Keypair,
     pub secret_key: SecretKey,
     pub public_key: XOnlyPublicKey,
-    pub address: Address
+    pub address: Address,
 }
 impl Default for Verifier {
     fn default() -> Self {
@@ -34,7 +34,6 @@ impl Verifier {
         let xonly = XOnlyPublicKey::from_keypair(&keypair);
         let address = Address::p2tr(&secp, xonly.0, None, bitcoin::Network::Signet);
 
-
         Verifier {
             secret_key: keypair.secret_key(),
             public_key: xonly.0,
@@ -42,7 +41,11 @@ impl Verifier {
         }
     }
 
-    pub fn create_challenge_tree(&self, circuit_size: usize, prover_pk: XOnlyPublicKey) -> (Address, Vec<[u8; 32]>) {
+    pub fn create_challenge_tree(
+        &self,
+        circuit_size: usize,
+        prover_pk: XOnlyPublicKey,
+    ) -> (Address, Vec<[u8; 32]>) {
         let m = (circuit_size - 1).ilog2() + 1;
         let mut taproot = TaprootBuilder::new();
         let mut rng = rand::thread_rng();
@@ -122,10 +125,13 @@ mod tests {
     #[test]
     fn test_create_challenge_tree() {
         let verifier = Verifier::new();
-        let (tree, hash_vec) = verifier.create_challenge_tree(3, XOnlyPublicKey::from_str(
-            "93c7378d96518a75448821c4f7c8f4bae7ce60f804d03d1f0628dd5dd0f5de51",
-        )
-        .unwrap());
+        let (tree, hash_vec) = verifier.create_challenge_tree(
+            3,
+            XOnlyPublicKey::from_str(
+                "93c7378d96518a75448821c4f7c8f4bae7ce60f804d03d1f0628dd5dd0f5de51",
+            )
+            .unwrap(),
+        );
         println!("tree: {:?}", tree);
         println!("hash_vec: {:?}", hash_vec);
     }
