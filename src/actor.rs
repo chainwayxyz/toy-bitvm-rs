@@ -32,7 +32,7 @@ impl Actor {
         let (sk, _pk) = secp.generate_keypair(&mut rng);
         let keypair = Keypair::from_secret_key(&secp, &sk);
         let (xonly, _parity) = XOnlyPublicKey::from_keypair(&keypair);
-        let address = Address::p2tr(&secp, xonly, None, bitcoin::Network::Signet);
+        let address = Address::p2tr(&secp, xonly, None, bitcoin::Network::Regtest);
 
         Actor {
             secp,
