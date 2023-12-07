@@ -1,6 +1,5 @@
-//use bitcoin::taproot::TapTree;
-
-use bitcoin::{Address, XOnlyPublicKey};
+use bitcoin::{Address, secp256k1::{Secp256k1, All}, taproot::TaprootSpendInfo};
+use crate::actor::Actor;
 
 // This trait defines the behavior of a circuit.
 pub trait CircuitTrait {
@@ -12,7 +11,8 @@ pub trait CircuitTrait {
 
     fn generate_anti_contradiction_tree(
         &self,
-        prover_pk: XOnlyPublicKey,
-        verifier_pk: XOnlyPublicKey,
-    ) -> Address;
+        secp: &Secp256k1<All>,
+        prover: &Actor,
+        verifier: &Actor,
+    ) -> (Address, TaprootSpendInfo);
 }

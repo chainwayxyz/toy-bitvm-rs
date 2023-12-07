@@ -1,6 +1,10 @@
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 use std::path::Path;
+
+use bitcoin::{ScriptBuf, Address, XOnlyPublicKey};
+use bitcoin::secp256k1::{Secp256k1, All};
+use bitcoin::taproot::{TaprootBuilder, TaprootSpendInfo};
 
 pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
@@ -8,6 +12,16 @@ where
 {
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
+}
+
+pub fn take_cmd_input(prompt: &str) -> String {
+    print!("{}", prompt);
+    let mut string = String::new();
+    io::stdout().flush().unwrap();
+    io::stdin()
+        .read_line(&mut string)
+        .expect("Failed to read txid");
+    string.trim().to_string()
 }
 
 pub fn number_to_bool_array(number: usize, length: usize) -> Vec<bool> {
@@ -57,4 +71,20 @@ pub fn bool_array_to_hex_string(bool_array: Vec<bool>) -> String {
         v.push(a[u]);
     }
     v.into_iter().collect::<String>()
+}
+
+pub fn taproot_address_from_script_leaves(secp: &Secp256k1<All>, scripts: Vec<ScriptBuf>, internal_key: XOnlyPublicKey) -> (Address, TaprootSpendInfo) {
+    let n = scripts.len();
+    assert!(n > 1, "more than one script is required");
+    let m: u8 = ((n - 1).ilog2() + 1) as u8; // m = ceil(log(n))
+    let k = 2_usize.pow(m.into()) - n;
+    let taproot = (0..n).fold(TaprootBuilder::new(), |acc, i| acc.add_leaf(m - ((i >= n - k) as u8), scripts[i].clone()).unwrap());
+    let tree_info = taproot.finalize(secp, internal_key).unwrap();
+    let address = Address::p2tr(
+        &secp,
+        internal_key,
+        tree_info.merkle_root(),
+        bitcoin::Network::Signet,
+    );
+    return (address, tree_info);
 }

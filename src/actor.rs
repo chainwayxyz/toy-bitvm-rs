@@ -1,12 +1,11 @@
-// use bitcoin::Network;
 use bitcoin::{
     hashes::Hash,
     secp256k1::{
         rand, schnorr::Signature, All, Keypair, Message, Secp256k1, SecretKey, XOnlyPublicKey,
     },
-    Address, TapSighash, TapTweakHash,
+    Address, TapSighash, TapTweakHash, ScriptBuf, script::Builder,
 };
-// use bitcoin::PublicKey;
+use bitcoin::opcodes::all::*;
 
 pub struct Actor {
     secp: Secp256k1<All>,
@@ -26,18 +25,27 @@ impl Actor {
     pub fn new() -> Self {
         let secp: Secp256k1<All> = Secp256k1::new();
         let mut rng = rand::thread_rng();
-        let elems = secp.generate_keypair(&mut rng);
-        let keypair = Keypair::from_secret_key(&secp, &elems.0);
-        let xonly = XOnlyPublicKey::from_keypair(&keypair);
-        let address = Address::p2tr(&secp, xonly.0, None, bitcoin::Network::Signet);
+        let (sk, _pk) = secp.generate_keypair(&mut rng);
+        let keypair = Keypair::from_secret_key(&secp, &sk);
+        let (xonly, _parity) = XOnlyPublicKey::from_keypair(&keypair);
+        let address = Address::p2tr(&secp, xonly, None, bitcoin::Network::Signet);
 
         Actor {
             secp,
             keypair,
             secret_key: keypair.secret_key(),
-            public_key: xonly.0,
+            public_key: xonly,
             address,
         }
+    }
+
+    pub fn script_10block(&self) -> ScriptBuf {
+        Builder::new()
+            .push_int(10)
+            .push_opcode(OP_CSV)
+            .push_x_only_key(&self.public_key)
+            .push_opcode(OP_CHECKSIG)
+            .into_script()
     }
 
     pub fn sign(&self, sighash: TapSighash) -> Signature {

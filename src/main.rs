@@ -1,16 +1,17 @@
 use bitcoin::absolute::{Height, LockTime};
-
 use bitcoin::consensus::encode::serialize_hex;
 use bitcoin::consensus::Decodable;
 use bitcoin::hash_types::Txid;
+use bitcoin::secp256k1::Secp256k1;
 use bitcoin::sighash::SighashCache;
 use bitcoin::{Amount, OutPoint, ScriptBuf, Transaction, TxIn, TxOut, Witness};
+
 use bitvm::actor::Actor;
-use bitvm::utils::{bool_array_to_number, number_to_bool_array};
+use bitvm::utils::take_cmd_input;
 use bitvm::{circuit::Circuit, traits::circuit::CircuitTrait};
 
 use std::borrow::BorrowMut;
-use std::io::{self, Write}; // Import necessary modules
+
 pub fn parse_hex_transaction(
     tx_hex: &str,
 ) -> Result<Transaction, bitcoin::consensus::encode::Error> {
@@ -22,45 +23,22 @@ pub fn parse_hex_transaction(
         ))
     }
 }
-fn main() {
-    let mut circuit = Circuit::from_bristol("bristol/add.txt");
-    let a1 = 633;
-    let a2 = 15;
-    let b1 = number_to_bool_array(a1, 64);
-    let b2 = number_to_bool_array(a2, 64);
 
-    let o = circuit.evaluate(vec![b1, b2]);
-    let output = bool_array_to_number(o.get(0).unwrap().to_vec());
-    println!("output : {:?}", output);
-    assert_eq!(output, a1 + a2);
+fn main() {
+    let circuit = Circuit::from_bristol("bristol/add.txt");
 
     let paul = Actor::new();
     let vicky = Actor::new();
+    let secp = Secp256k1::new();
     let amt = 10_000;
 
     println!("Send {} satoshis to Public Key: {}", amt, paul.address);
 
-    let mut txid_str = String::new();
-    let mut vout_str = String::new();
+    let txid: Txid = take_cmd_input("Enter txid: ").parse().expect("invalid txid format");
+    let vout: u32 = take_cmd_input("Enter vout: ").trim().parse().expect("invalid vout format");
 
-    print!("Enter txid: ");
-    io::stdout().flush().unwrap(); // Make sure 'Enter txid' is printed before input
-    io::stdin()
-        .read_line(&mut txid_str)
-        .expect("Failed to read txid");
-    let txid_str = txid_str.trim(); // Trim newline/whitespace
-    let txid: Txid = txid_str.parse().expect("Invalid txid format");
-
-    // Read vout
-    print!("Enter vout: ");
-    io::stdout().flush().unwrap(); // Make sure 'Enter vout' is printed before input
-    io::stdin()
-        .read_line(&mut vout_str)
-        .expect("Failed to read vout");
-    let vout: u32 = vout_str.trim().parse().expect("Invalid vout format");
-
-    // let txid: Txid = "9aa3e28ba1742b0df567df6998c00ef78136be16dd107f422f8af9b0f56bd68c".parse().unwrap();
-    // let vout: u32 = "0".parse().unwrap();
+    let (address, _info) = circuit
+    .generate_anti_contradiction_tree(&secp, &paul, &vicky);
 
     let mut tx = Transaction {
         version: bitcoin::transaction::Version::TWO,
@@ -72,9 +50,7 @@ fn main() {
             witness: Witness::new(),
         }],
         output: vec![TxOut {
-            script_pubkey: circuit
-                .generate_anti_contradiction_tree(paul.public_key, vicky.public_key)
-                .script_pubkey(),
+            script_pubkey: address.script_pubkey(),
             value: Amount::from_sat(amt - 500),
         }],
     };
