@@ -11,16 +11,14 @@ use bitcoin::{
 };
 use bitcoin::{Address, Network};
 use rand::Rng;
-// use bitcoin::PublicKey;
 
 pub struct Verifier {
     // secp: Secp256k1<All>,
     // keypair: Keypair,
     pub secret_key: SecretKey,
     pub public_key: XOnlyPublicKey,
-    pub address: Address,
+    pub address: Address
 }
-
 impl Default for Verifier {
     fn default() -> Self {
         Self::new()
@@ -36,16 +34,15 @@ impl Verifier {
         let xonly = XOnlyPublicKey::from_keypair(&keypair);
         let address = Address::p2tr(&secp, xonly.0, None, bitcoin::Network::Signet);
 
+
         Verifier {
-            // secp,
-            // keypair,
             secret_key: keypair.secret_key(),
             public_key: xonly.0,
             address,
         }
     }
 
-    pub fn create_challenge_tree(&self, circuit_size: usize) -> (Address, Vec<[u8; 32]>) {
+    pub fn create_challenge_tree(&self, circuit_size: usize, prover_pk: XOnlyPublicKey) -> (Address, Vec<[u8; 32]>) {
         let m = (circuit_size - 1).ilog2() + 1;
         let mut taproot = TaprootBuilder::new();
         let mut rng = rand::thread_rng();
@@ -57,7 +54,7 @@ impl Verifier {
             hash_vec.push(temp_hash);
             let temp_script = Builder::new()
                 .push_opcode(OP_SHA256)
-                .push_slice(temp)
+                .push_slice(temp_hash)
                 .push_opcode(OP_EQUALVERIFY)
                 .into_script();
             println!("temp_script: {:?}", temp_script);
@@ -71,14 +68,14 @@ impl Verifier {
         println!("hash_vec: {:?}", hash_vec);
         println!("taproot: {:?}", taproot);
 
-        let v10_script = Builder::new()
+        let p10_script = Builder::new()
             .push_int(10)
             .push_opcode(OP_CSV)
-            .push_x_only_key(&self.public_key)
+            .push_x_only_key(&prover_pk)
             .push_opcode(OP_CHECKSIG)
             .into_script();
 
-        taproot = taproot.add_leaf(1, v10_script.clone()).unwrap();
+        taproot = taproot.add_leaf(1, p10_script.clone()).unwrap();
         //TODO: change this to have the verifier's public keys
         let secp = Secp256k1::verification_only();
         let internal_key = XOnlyPublicKey::from_str(
@@ -90,12 +87,12 @@ impl Verifier {
         let output_key = tree_info.output_key();
         println!("output_key: {:?}", output_key);
 
-        let v10_ver_script = (v10_script, LeafVersion::TapScript);
-        let p10_ctrl_block = tree_info.control_block(&v10_ver_script).unwrap();
+        let p10_ver_script = (p10_script, LeafVersion::TapScript);
+        let p10_ctrl_block = tree_info.control_block(&p10_ver_script).unwrap();
         assert!(p10_ctrl_block.verify_taproot_commitment(
             &secp,
             output_key.to_inner(),
-            &v10_ver_script.0
+            &p10_ver_script.0
         ));
 
         (
@@ -112,6 +109,7 @@ impl Verifier {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
@@ -124,7 +122,10 @@ mod tests {
     #[test]
     fn test_create_challenge_tree() {
         let verifier = Verifier::new();
-        let (tree, hash_vec) = verifier.create_challenge_tree(3);
+        let (tree, hash_vec) = verifier.create_challenge_tree(3, XOnlyPublicKey::from_str(
+            "93c7378d96518a75448821c4f7c8f4bae7ce60f804d03d1f0628dd5dd0f5de51",
+        )
+        .unwrap());
         println!("tree: {:?}", tree);
         println!("hash_vec: {:?}", hash_vec);
     }
