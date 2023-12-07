@@ -61,6 +61,20 @@ impl WireTrait for Wire {
             //.push_opcode(OP_CHECKSIGVERIFY)
             .into_script()
     }
+
+    fn add_bit_commitment_script(&self, builder: Builder) -> Builder {
+        builder
+            .push_opcode(OP_SHA256)
+            .push_opcode(OP_DUP)
+            .push_slice(self.hashes[1])
+            .push_opcode(OP_EQUAL)
+            .push_opcode(OP_DUP)
+            .push_opcode(OP_ROT)
+            .push_slice(self.hashes[0])
+            .push_opcode(OP_EQUAL)
+            .push_opcode(OP_BOOLOR)
+            .push_opcode(OP_VERIFY)
+    }
 }
 
 #[cfg(test)]
