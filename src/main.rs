@@ -10,7 +10,7 @@ use bitcoin::{Amount, OutPoint, ScriptBuf, Transaction, TxIn, TxOut, Witness};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
 use bitvm::actor::Actor;
 use bitvm::traits::wire::WireTrait;
-use bitvm::utils::take_stdin;
+
 use bitvm::wire::Wire;
 use bitvm::{circuit::Circuit, traits::circuit::CircuitTrait};
 
@@ -158,10 +158,11 @@ fn main() {
     let witness = sighash_cache.witness_mut(0).unwrap();
     witness.push(sig.as_ref());
 
-
     println!("txid : {:?}", serialize_hex(&tx));
 
-    let initial_tx = rpc.send_raw_transaction(&tx).unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
+    let initial_tx = rpc
+        .send_raw_transaction(&tx)
+        .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
     println!("initial tx = {:?}", initial_tx);
 
     // let mut txid_str: [u8];
