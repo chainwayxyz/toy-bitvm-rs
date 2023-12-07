@@ -2,15 +2,11 @@ use std::cell::RefCell;
 use std::collections::BTreeMap;
 use std::iter::zip;
 use std::rc::Rc;
-use std::str::FromStr;
 
 use bitcoin::secp256k1::All;
+use bitcoin::secp256k1::Secp256k1;
 use bitcoin::taproot::TaprootSpendInfo;
 use bitcoin::{Address, ScriptBuf};
-use bitcoin::{
-    key::XOnlyPublicKey,
-    secp256k1::Secp256k1
-};
 
 use crate::actor::Actor;
 use crate::utils::taproot_address_from_script_leaves;
@@ -192,13 +188,18 @@ impl CircuitTrait for Circuit {
         prover: &Actor,
         verifier: &Actor,
     ) -> (Address, TaprootSpendInfo) {
-        let mut scripts = self.wires.iter().map(|wire_rcref| wire_rcref.try_borrow_mut().unwrap().generate_anti_contradiction_script(verifier.public_key)).collect::<Vec<ScriptBuf>>();
-        scripts.push(prover.script_10block());
-        let internal_key = XOnlyPublicKey::from_str(
-            "93c7378d96518a75448821c4f7c8f4bae7ce60f804d03d1f0628dd5dd0f5de51",
-        )
-        .unwrap();
-        taproot_address_from_script_leaves(secp, scripts, internal_key)
+        let mut scripts = self
+            .wires
+            .iter()
+            .map(|wire_rcref| {
+                wire_rcref
+                    .try_borrow_mut()
+                    .unwrap()
+                    .generate_anti_contradiction_script(verifier.public_key)
+            })
+            .collect::<Vec<ScriptBuf>>();
+        scripts.push(prover.generate_timelock_script(10));
+        taproot_address_from_script_leaves(secp, scripts)
     }
 }
 
@@ -207,8 +208,8 @@ mod tests {
     use bitcoin::taproot::LeafVersion;
 
     use super::*;
-    use crate::utils::{bool_array_to_number, number_to_bool_array};
     use crate::actor::Actor;
+    use crate::utils::{bool_array_to_number, number_to_bool_array};
 
     #[test]
     fn test_circuit() {
@@ -242,19 +243,24 @@ mod tests {
         let verifier = Actor::new();
         let secp = Secp256k1::new();
 
-        let (_address, tree_info) = circuit.generate_anti_contradiction_tree(&secp, &prover, &verifier);
+        let (_address, tree_info) =
+            circuit.generate_anti_contradiction_tree(&secp, &prover, &verifier);
         for wire_rcref in circuit.wires.iter() {
             let wire = wire_rcref.try_borrow_mut().unwrap();
             let script = wire.generate_anti_contradiction_script(verifier.public_key);
-            let ctrl_block = tree_info.control_block(&(script.clone(), LeafVersion::TapScript)).unwrap();
+            let ctrl_block = tree_info
+                .control_block(&(script.clone(), LeafVersion::TapScript))
+                .unwrap();
             assert!(ctrl_block.verify_taproot_commitment(
                 &secp,
                 tree_info.output_key().to_inner(),
                 &script
             ));
         }
-        let p10_script = prover.script_10block();
-        let p10_ctrl_block = tree_info.control_block(&(p10_script.clone(), LeafVersion::TapScript)).unwrap();
+        let p10_script = prover.generate_timelock_script(10);
+        let p10_ctrl_block = tree_info
+            .control_block(&(p10_script.clone(), LeafVersion::TapScript))
+            .unwrap();
         assert!(p10_ctrl_block.verify_taproot_commitment(
             &secp,
             tree_info.output_key().to_inner(),

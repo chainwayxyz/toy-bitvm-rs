@@ -2,14 +2,14 @@ use bitcoin::absolute::{Height, LockTime};
 use bitcoin::consensus::encode::serialize_hex;
 use bitcoin::consensus::Decodable;
 use bitcoin::hash_types::Txid;
-use bitcoin::secp256k1::{Secp256k1, All};
+use bitcoin::secp256k1::{All, Secp256k1};
 use bitcoin::sighash::SighashCache;
 use bitcoin::taproot::{LeafVersion, TaprootSpendInfo};
 use bitcoin::{Amount, OutPoint, ScriptBuf, Transaction, TxIn, TxOut, Witness};
 
 use bitvm::actor::Actor;
 use bitvm::traits::wire::WireTrait;
-use bitvm::utils::take_cmd_input;
+use bitvm::utils::take_stdin;
 use bitvm::wire::Wire;
 use bitvm::{circuit::Circuit, traits::circuit::CircuitTrait};
 
@@ -27,8 +27,17 @@ pub fn parse_hex_transaction(
     }
 }
 
-pub fn use_equivocation(_secp: Secp256k1<All>, txid: Txid, verifier: &Actor, wire: Wire, info: TaprootSpendInfo) {
-    let vout: u32 = take_cmd_input("Enter vout: ").trim().parse().expect("invalid vout format");
+pub fn use_equivocation(
+    _secp: Secp256k1<All>,
+    txid: Txid,
+    verifier: &Actor,
+    wire: Wire,
+    info: TaprootSpendInfo,
+) {
+    let vout: u32 = take_stdin("Enter vout: ")
+        .trim()
+        .parse()
+        .expect("invalid vout format");
 
     let script = wire.generate_anti_contradiction_script(verifier.public_key);
 
@@ -76,11 +85,15 @@ fn main() {
 
     println!("Send {} satoshis to Public Key: {}", amt, paul.address);
 
-    let txid: Txid = take_cmd_input("Enter txid: ").parse().expect("invalid txid format");
-    let vout: u32 = take_cmd_input("Enter vout: ").trim().parse().expect("invalid vout format");
+    let txid: Txid = take_stdin("Enter txid: ")
+        .parse()
+        .expect("invalid txid format");
+    let vout: u32 = take_stdin("Enter vout: ")
+        .trim()
+        .parse()
+        .expect("invalid vout format");
 
-    let (address, info) = circuit
-    .generate_anti_contradiction_tree(&secp, &paul, &vicky);
+    let (address, info) = circuit.generate_anti_contradiction_tree(&secp, &paul, &vicky);
 
     let mut tx = Transaction {
         version: bitcoin::transaction::Version::TWO,
@@ -125,7 +138,11 @@ fn main() {
     // let mut txid_str: [u8];
     // tx.consensus_encode().unwrap();
 
-    let wire_rcref = &circuit.wires[0];
-    let wire = wire_rcref.try_borrow_mut().unwrap();
-    use_equivocation(secp, tx.txid(), &vicky, wire.to_owned(), info);
+    let use_eq = 0;
+
+    if use_eq > 0 {
+        let wire_rcref = &circuit.wires[0];
+        let wire = wire_rcref.try_borrow_mut().unwrap();
+        use_equivocation(secp, tx.txid(), &vicky, wire.to_owned(), info);
+    }
 }

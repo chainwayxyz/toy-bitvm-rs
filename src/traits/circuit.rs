@@ -1,5 +1,9 @@
-use bitcoin::{Address, secp256k1::{Secp256k1, All}, taproot::TaprootSpendInfo};
 use crate::actor::Actor;
+use bitcoin::{
+    secp256k1::{All, Secp256k1},
+    taproot::TaprootSpendInfo,
+    Address,
+};
 
 // This trait defines the behavior of a circuit.
 pub trait CircuitTrait {

@@ -1,11 +1,12 @@
+use bitcoin::opcodes::all::*;
 use bitcoin::{
     hashes::Hash,
+    script::Builder,
     secp256k1::{
         rand, schnorr::Signature, All, Keypair, Message, Secp256k1, SecretKey, XOnlyPublicKey,
     },
-    Address, TapSighash, TapTweakHash, ScriptBuf, script::Builder,
+    Address, ScriptBuf, TapSighash, TapTweakHash,
 };
-use bitcoin::opcodes::all::*;
 
 pub struct Actor {
     secp: Secp256k1<All>,
@@ -39,9 +40,9 @@ impl Actor {
         }
     }
 
-    pub fn script_10block(&self) -> ScriptBuf {
+    pub fn generate_timelock_script(&self, block_count: u32) -> ScriptBuf {
         Builder::new()
-            .push_int(10)
+            .push_int(block_count as i64)
             .push_opcode(OP_CSV)
             .push_x_only_key(&self.public_key)
             .push_opcode(OP_CHECKSIG)
