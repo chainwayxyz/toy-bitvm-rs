@@ -2,12 +2,15 @@ use bitcoin::absolute::{Height, LockTime};
 use bitcoin::consensus::encode::serialize_hex;
 use bitcoin::consensus::Decodable;
 use bitcoin::hash_types::Txid;
-use bitcoin::secp256k1::Secp256k1;
+use bitcoin::secp256k1::{Secp256k1, All};
 use bitcoin::sighash::SighashCache;
+use bitcoin::taproot::{LeafVersion, TaprootSpendInfo};
 use bitcoin::{Amount, OutPoint, ScriptBuf, Transaction, TxIn, TxOut, Witness};
 
 use bitvm::actor::Actor;
+use bitvm::traits::wire::WireTrait;
 use bitvm::utils::take_cmd_input;
+use bitvm::wire::Wire;
 use bitvm::{circuit::Circuit, traits::circuit::CircuitTrait};
 
 use std::borrow::BorrowMut;
@@ -24,6 +27,45 @@ pub fn parse_hex_transaction(
     }
 }
 
+pub fn use_equivocation(_secp: Secp256k1<All>, txid: Txid, verifier: &Actor, wire: Wire, info: TaprootSpendInfo) {
+    let vout: u32 = take_cmd_input("Enter vout: ").trim().parse().expect("invalid vout format");
+
+    let script = wire.generate_anti_contradiction_script(verifier.public_key);
+
+    let mut tx = Transaction {
+        version: bitcoin::transaction::Version::TWO,
+        lock_time: LockTime::from(Height::MIN),
+        input: vec![TxIn {
+            previous_output: OutPoint { txid, vout },
+            script_sig: ScriptBuf::new(),
+            sequence: bitcoin::transaction::Sequence::ENABLE_RBF_NO_LOCKTIME,
+            witness: Witness::new(),
+        }],
+        output: vec![TxOut {
+            script_pubkey: verifier.address.script_pubkey(),
+            value: Amount::from_sat(9000),
+        }],
+    };
+
+    let mut sighash_cache = SighashCache::new(tx.borrow_mut());
+
+    let control_block = info
+        .control_block(&(script.clone(), LeafVersion::TapScript))
+        .expect("Cannot create control block");
+
+    let witness = sighash_cache.witness_mut(0).unwrap();
+    witness.push(wire.preimages.unwrap()[1]);
+    witness.push(wire.preimages.unwrap()[0]);
+    witness.push(script);
+    witness.push(&control_block.serialize());
+
+    // println!("sigHash : {:?}", sig_hash);
+    // println!("tx : {:?}", tx);
+    println!("equivocation");
+    println!("txid : {:?}", tx.txid());
+    println!("txid : {:?}", serialize_hex(&tx));
+}
+
 fn main() {
     let circuit = Circuit::from_bristol("bristol/add.txt");
 
@@ -37,7 +79,7 @@ fn main() {
     let txid: Txid = take_cmd_input("Enter txid: ").parse().expect("invalid txid format");
     let vout: u32 = take_cmd_input("Enter vout: ").trim().parse().expect("invalid vout format");
 
-    let (address, _info) = circuit
+    let (address, info) = circuit
     .generate_anti_contradiction_tree(&secp, &paul, &vicky);
 
     let mut tx = Transaction {
@@ -82,4 +124,8 @@ fn main() {
     println!("txid : {:?}", serialize_hex(&tx));
     // let mut txid_str: [u8];
     // tx.consensus_encode().unwrap();
+
+    let wire_rcref = &circuit.wires[0];
+    let wire = wire_rcref.try_borrow_mut().unwrap();
+    use_equivocation(secp, tx.txid(), &vicky, wire.to_owned(), info);
 }

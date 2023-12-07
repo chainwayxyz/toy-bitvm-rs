@@ -59,6 +59,7 @@ impl WireTrait for Wire {
             .push_opcode(OP_EQUALVERIFY)
             //.push_x_only_key(&verifier_pk)
             //.push_opcode(OP_CHECKSIGVERIFY)
+            .push_int(1)
             .into_script()
     }
 
