@@ -42,6 +42,10 @@ impl Circuit {
 }
 
 impl CircuitTrait for Circuit {
+    fn num_gates(&self) -> usize {
+        self.gates.len()
+    }
+
     fn evaluate(&mut self, inputs: Vec<Vec<bool>>) -> Vec<Vec<bool>> {
         assert_eq!(
             inputs.len(),
@@ -180,24 +184,51 @@ impl CircuitTrait for Circuit {
         };
     }
 
-    fn generate_bit_commitment_tree(&self) {}
+    fn generate_response_tree(
+        &self,
+        secp: &Secp256k1<All>,
+        _prover: &Actor,
+        verifier: &Actor,
+        challenge_hashes: Vec<[u8; 32]>,
+    ) -> (Address, TaprootSpendInfo) {
+        assert_eq!(
+            challenge_hashes.len(),
+            self.gates.len(),
+            "wrong number of challenge hashes"
+        );
+        let mut scripts = self
+            .gates
+            .iter()
+            .zip(challenge_hashes.iter())
+            .map(|(gate, hash)| gate.create_response_script(*hash))
+            .collect::<Vec<ScriptBuf>>();
+        scripts.push(verifier.generate_timelock_script(10));
+        taproot_address_from_script_leaves(secp, scripts)
+    }
 
-    fn generate_anti_contradiction_tree(
+    fn generate_challenge_tree(
         &self,
         secp: &Secp256k1<All>,
         prover: &Actor,
         verifier: &Actor,
+        challenge_hashes: Vec<[u8; 32]>,
     ) -> (Address, TaprootSpendInfo) {
-        let mut scripts = self
-            .wires
+        assert_eq!(
+            challenge_hashes.len(),
+            self.gates.len(),
+            "wrong number of challenge hashes"
+        );
+        let mut scripts = challenge_hashes
             .iter()
-            .map(|wire_rcref| {
-                wire_rcref
-                    .try_borrow_mut()
-                    .unwrap()
-                    .generate_anti_contradiction_script(verifier.public_key)
-            })
+            .map(|x| verifier.generate_challenge_script(x))
             .collect::<Vec<ScriptBuf>>();
+        // let mut reveal_challenge_scripts =
+        scripts.extend(self.wires.iter().map(|wire_rcref| {
+            wire_rcref
+                .try_borrow_mut()
+                .unwrap()
+                .generate_anti_contradiction_script(verifier.public_key)
+        }));
         scripts.push(prover.generate_timelock_script(10));
         taproot_address_from_script_leaves(secp, scripts)
     }
@@ -237,14 +268,15 @@ mod tests {
     }
 
     #[test]
-    fn test_circuit_aca() {
+    fn test_challenge_tree() {
         let circuit = Circuit::from_bristol("bristol/test.txt");
         let prover = Actor::new();
-        let verifier = Actor::new();
+        let mut verifier = Actor::new();
         let secp = Secp256k1::new();
 
-        let (_address, tree_info) =
-            circuit.generate_anti_contradiction_tree(&secp, &prover, &verifier);
+        let challenge_hashes = verifier.generate_challenge_hashes(circuit.num_gates());
+
+        let (_address, tree_info) = circuit.generate_challenge_tree(&secp, &prover, &verifier, challenge_hashes);
         for wire_rcref in circuit.wires.iter() {
             let wire = wire_rcref.try_borrow_mut().unwrap();
             let script = wire.generate_anti_contradiction_script(verifier.public_key);
@@ -257,6 +289,7 @@ mod tests {
                 &script
             ));
         }
+        // TODO: add tests for reveral challenge scripts
         let p10_script = prover.generate_timelock_script(10);
         let p10_ctrl_block = tree_info
             .control_block(&(p10_script.clone(), LeafVersion::TapScript))

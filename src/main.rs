@@ -79,7 +79,7 @@ fn main() {
     let circuit = Circuit::from_bristol("bristol/add.txt");
 
     let paul = Actor::new();
-    let vicky = Actor::new();
+    let mut vicky = Actor::new();
     let secp = Secp256k1::new();
     let amt = 10_000;
 
@@ -93,7 +93,9 @@ fn main() {
         .parse()
         .expect("invalid vout format");
 
-    let (address, info) = circuit.generate_anti_contradiction_tree(&secp, &paul, &vicky);
+    let challenge_hashes = vicky.generate_challenge_hashes(circuit.num_gates());
+
+    let (address, info) = circuit.generate_challenge_tree(&secp, &paul, &vicky, challenge_hashes);
 
     let mut tx = Transaction {
         version: bitcoin::transaction::Version::TWO,
@@ -138,7 +140,7 @@ fn main() {
     // let mut txid_str: [u8];
     // tx.consensus_encode().unwrap();
 
-    let use_eq = 0;
+    let use_eq = 1;
 
     if use_eq > 0 {
         let wire_rcref = &circuit.wires[0];

@@ -1,3 +1,4 @@
+use bitcoin::hashes::sha256;
 use bitcoin::opcodes::all::*;
 use bitcoin::{
     hashes::Hash,
@@ -7,6 +8,7 @@ use bitcoin::{
     },
     Address, ScriptBuf, TapSighash, TapTweakHash,
 };
+use rand::Rng;
 
 pub struct Actor {
     secp: Secp256k1<All>,
@@ -14,6 +16,7 @@ pub struct Actor {
     pub secret_key: SecretKey,
     pub public_key: XOnlyPublicKey,
     pub address: Address,
+    challenge_preimages: Vec<Vec<[u8; 32]>>,
 }
 
 impl Default for Actor {
@@ -37,6 +40,7 @@ impl Actor {
             secret_key: keypair.secret_key(),
             public_key: xonly,
             address,
+            challenge_preimages: Vec::new(),
         }
     }
 
@@ -61,6 +65,28 @@ impl Actor {
                 .unwrap(),
             &mut rand::thread_rng(),
         )
+    }
+
+    pub fn generate_challenge_hashes(&mut self, num_gates: usize) -> Vec<[u8; 32]> {
+        let mut challenge_hashes = Vec::new();
+        let mut rng = rand::thread_rng();
+        let mut preimages = Vec::new();
+        for _ in 0..num_gates {
+            let preimage: [u8; 32] = rng.gen();
+            preimages.push(preimage);
+            challenge_hashes.push(sha256::Hash::hash(&preimage).to_byte_array());
+        }
+        self.challenge_preimages.push(preimages);
+        challenge_hashes
+    }
+
+    pub fn generate_challenge_script(&self, challenge_hash: &[u8; 32]) -> ScriptBuf {
+        Builder::new()
+            .push_slice(challenge_hash)
+            .push_opcode(OP_EQUALVERIFY)
+            .push_x_only_key(&self.public_key)
+            .push_opcode(OP_CHECKSIG)
+            .into_script()
     }
 }
 
