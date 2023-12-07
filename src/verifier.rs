@@ -13,11 +13,11 @@ use bitcoin::{Address, Network};
 use rand::Rng;
 
 pub struct Verifier {
-    // secp: Secp256k1<All>,
-    // keypair: Keypair,
     pub secret_key: SecretKey,
     pub public_key: XOnlyPublicKey,
     pub address: Address,
+    challenge_hashes: Option<Vec<[u8; 32]>>,
+    challenge_preimages: Option<Vec<[u8; 32]>>,
 }
 impl Default for Verifier {
     fn default() -> Self {
@@ -38,7 +38,32 @@ impl Verifier {
             secret_key: keypair.secret_key(),
             public_key: xonly.0,
             address,
+            challenge_hashes: None,
+            challenge_preimages: None,
         }
+    }
+
+    fn set_challenge_hashes(&mut self, hash_vec: Vec<[u8; 32]>) {
+        self.challenge_hashes = Some(hash_vec);
+    }
+
+    fn set_challenge_preimages(&mut self, preimage_vec: Vec<[u8; 32]>) {
+        self.challenge_preimages = Some(preimage_vec);
+    }
+
+    pub fn create_challenge_hashes(&mut self, circuit_size: usize) -> Vec<[u8; 32]> {
+        let mut rng = rand::thread_rng();
+        let mut hash_vec = Vec::new();
+        let mut preimage_vec = Vec::new();
+        for _ in 0..circuit_size {
+            let temp: [u8; 32] = rng.gen();
+            let temp_hash = sha256::Hash::hash(&temp).to_byte_array();
+            hash_vec.push(temp_hash);
+            preimage_vec.push(temp);
+        }
+        self.set_challenge_hashes(hash_vec.clone());
+        self.set_challenge_preimages(preimage_vec.clone());
+        hash_vec
     }
 
     pub fn create_challenge_tree(
