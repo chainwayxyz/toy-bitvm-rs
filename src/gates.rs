@@ -253,8 +253,6 @@ mod tests {
         )
         .expect("error creating exec");
 
-        
-
         let has_error = loop {
             if exec_00.exec_next().is_err() {
                 println!("error: {:?}", exec_00.exec_next().err());
