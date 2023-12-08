@@ -49,7 +49,7 @@ impl Wire {
 }
 
 impl WireTrait for Wire {
-    fn generate_anti_contradiction_script(&self, _verifier_pk: XOnlyPublicKey) -> ScriptBuf {
+    fn generate_anti_contradiction_script(&self, verifier_pk: XOnlyPublicKey) -> ScriptBuf {
         Builder::new()
             .push_opcode(OP_SHA256)
             .push_slice(self.hashes[0])
@@ -57,9 +57,8 @@ impl WireTrait for Wire {
             .push_opcode(OP_SHA256)
             .push_slice(self.hashes[1])
             .push_opcode(OP_EQUALVERIFY)
-            //.push_x_only_key(&verifier_pk)
-            //.push_opcode(OP_CHECKSIGVERIFY)
-            .push_int(1)
+            .push_x_only_key(&verifier_pk)
+            .push_opcode(OP_CHECKSIG)
             .into_script()
     }
 

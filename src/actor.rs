@@ -1,5 +1,6 @@
 use bitcoin::hashes::sha256;
 use bitcoin::opcodes::all::*;
+use bitcoin::TapNodeHash;
 use bitcoin::{
     hashes::Hash,
     script::Builder,
@@ -53,16 +54,28 @@ impl Actor {
             .into_script()
     }
 
-    pub fn sign(&self, sighash: TapSighash) -> Signature {
+    pub fn sign_with_tweak(
+        &self,
+        sighash: TapSighash,
+        merkle_root: Option<TapNodeHash>,
+    ) -> Signature {
         self.secp.sign_schnorr_with_rng(
             &Message::from_digest_slice(sighash.as_byte_array()).expect("should be hash"),
             &self
                 .keypair
                 .add_xonly_tweak(
                     &self.secp,
-                    &TapTweakHash::from_key_and_tweak(self.public_key, None).to_scalar(),
+                    &TapTweakHash::from_key_and_tweak(self.public_key, merkle_root).to_scalar(),
                 )
                 .unwrap(),
+            &mut rand::thread_rng(),
+        )
+    }
+
+    pub fn sign(&self, sighash: TapSighash) -> Signature {
+        self.secp.sign_schnorr_with_rng(
+            &Message::from_digest_slice(sighash.as_byte_array()).expect("should be hash"),
+            &self.keypair,
             &mut rand::thread_rng(),
         )
     }
