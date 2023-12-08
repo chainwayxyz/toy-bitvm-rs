@@ -7,8 +7,7 @@ use bitvm::{
     traits::circuit::CircuitTrait,
 };
 
-
-use tokio_tungstenite::{connect_async};
+use tokio_tungstenite::connect_async;
 
 // #[derive(Serialize, Deserialize, Debug)]
 // struct WireHash {

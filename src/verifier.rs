@@ -4,7 +4,7 @@ use bitvm::{
     communication::{receive_message, send_message},
 };
 use tokio::net::{TcpListener, TcpStream};
-use tokio_tungstenite::{accept_async};
+use tokio_tungstenite::accept_async;
 
 #[tokio::main]
 async fn main() {
