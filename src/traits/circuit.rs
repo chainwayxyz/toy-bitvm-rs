@@ -1,4 +1,7 @@
-use crate::{actor::Actor, wire::HashTuple};
+use crate::{
+    actor::Actor,
+    wire::{HashTuple, HashValue},
+};
 use bitcoin::{
     secp256k1::{All, Secp256k1},
     taproot::TaprootSpendInfo,
@@ -20,7 +23,7 @@ pub trait CircuitTrait {
         secp: &Secp256k1<All>,
         prover: &Actor,
         verifier: &Actor,
-        challenge_hashes: Vec<[u8; 32]>,
+        challenge_hashes: Vec<HashValue>,
     ) -> (Address, TaprootSpendInfo);
 
     fn generate_response_tree(
@@ -28,6 +31,6 @@ pub trait CircuitTrait {
         secp: &Secp256k1<All>,
         prover: &Actor,
         verifier: &Actor,
-        challenge_hashes: Vec<[u8; 32]>,
+        challenge_hashes: Vec<HashValue>,
     ) -> (Address, TaprootSpendInfo);
 }

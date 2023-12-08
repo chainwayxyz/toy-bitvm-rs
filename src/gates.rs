@@ -5,6 +5,7 @@ use bitcoin::script::Builder;
 use bitcoin::ScriptBuf;
 
 use crate::traits::wire::WireTrait;
+use crate::wire::HashValue;
 use crate::{traits::gate::GateTrait, wire::Wire};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -34,7 +35,7 @@ impl GateTrait for NotGate {
         out.selector = Some(w);
     }
 
-    fn create_response_script(&self, lock_hash: [u8; 32]) -> ScriptBuf {
+    fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
         let builder = Builder::new()
             .push_opcode(OP_SHA256)
             .push_slice(lock_hash)
@@ -81,7 +82,7 @@ impl GateTrait for AndGate {
         out.selector = Some(w);
     }
 
-    fn create_response_script(&self, lock_hash: [u8; 32]) -> ScriptBuf {
+    fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
         let builder = Builder::new()
             .push_opcode(OP_SHA256)
             .push_slice(lock_hash)
@@ -134,7 +135,7 @@ impl GateTrait for XorGate {
         out.selector = Some(w);
     }
 
-    fn create_response_script(&self, lock_hash: [u8; 32]) -> ScriptBuf {
+    fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
         let builder = Builder::new()
             .push_opcode(OP_SHA256)
             .push_slice(lock_hash)
@@ -164,6 +165,8 @@ impl GateTrait for XorGate {
 
 #[cfg(test)]
 mod tests {
+    use crate::wire::PreimageValue;
+
     use super::*;
     use bitcoin::hashes::sha256;
     use bitcoin::hashes::Hash;
@@ -187,7 +190,7 @@ mod tests {
 
         let mut rng = rand::thread_rng();
 
-        let lock_preimage: [u8; 32] = rng.gen();
+        let lock_preimage: PreimageValue = rng.gen();
 
         let lock_hash = sha256::Hash::hash(&lock_preimage).to_byte_array();
 

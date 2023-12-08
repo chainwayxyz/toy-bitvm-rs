@@ -11,6 +11,7 @@ use bitcoin::{Address, ScriptBuf};
 use crate::actor::Actor;
 use crate::utils::taproot_address_from_script_leaves;
 use crate::wire::HashTuple;
+use crate::wire::HashValue;
 use crate::{
     gates::{AndGate, NotGate, XorGate},
     traits::{circuit::CircuitTrait, gate::GateTrait, wire::WireTrait},
@@ -200,7 +201,7 @@ impl CircuitTrait for Circuit {
         secp: &Secp256k1<All>,
         _prover: &Actor,
         verifier: &Actor,
-        challenge_hashes: Vec<[u8; 32]>,
+        challenge_hashes: Vec<HashValue>,
     ) -> (Address, TaprootSpendInfo) {
         assert_eq!(
             challenge_hashes.len(),
@@ -222,7 +223,7 @@ impl CircuitTrait for Circuit {
         secp: &Secp256k1<All>,
         prover: &Actor,
         verifier: &Actor,
-        challenge_hashes: Vec<[u8; 32]>,
+        challenge_hashes: Vec<HashValue>,
     ) -> (Address, TaprootSpendInfo) {
         assert_eq!(
             challenge_hashes.len(),

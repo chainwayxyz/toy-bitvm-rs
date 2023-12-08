@@ -11,13 +11,15 @@ use bitcoin::{
 };
 use rand::Rng;
 
+use crate::wire::{HashValue, PreimageValue};
+
 pub struct Actor {
     secp: Secp256k1<All>,
     keypair: Keypair,
     pub secret_key: SecretKey,
     pub public_key: XOnlyPublicKey,
     pub address: Address,
-    challenge_preimages: Vec<Vec<[u8; 32]>>,
+    challenge_preimages: Vec<Vec<PreimageValue>>,
 }
 
 impl Default for Actor {
@@ -80,12 +82,12 @@ impl Actor {
         )
     }
 
-    pub fn generate_challenge_hashes(&mut self, num_gates: usize) -> Vec<[u8; 32]> {
+    pub fn generate_challenge_hashes(&mut self, num_gates: usize) -> Vec<HashValue> {
         let mut challenge_hashes = Vec::new();
         let mut rng = rand::thread_rng();
         let mut preimages = Vec::new();
         for _ in 0..num_gates {
-            let preimage: [u8; 32] = rng.gen();
+            let preimage: PreimageValue = rng.gen();
             preimages.push(preimage);
             challenge_hashes.push(sha256::Hash::hash(&preimage).to_byte_array());
         }
@@ -93,7 +95,7 @@ impl Actor {
         challenge_hashes
     }
 
-    pub fn generate_challenge_script(&self, challenge_hash: &[u8; 32]) -> ScriptBuf {
+    pub fn generate_challenge_script(&self, challenge_hash: &HashValue) -> ScriptBuf {
         Builder::new()
             .push_slice(challenge_hash)
             .push_opcode(OP_EQUALVERIFY)
