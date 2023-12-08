@@ -1,7 +1,8 @@
 // verifier.rs
 use bitvm::{
     actor::Actor,
-    communication::{receive_message, send_message}, wire::HashTuple,
+    communication::{receive_message, send_message},
+    wire::HashTuple,
 };
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::accept_async;

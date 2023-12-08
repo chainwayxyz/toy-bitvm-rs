@@ -1,4 +1,7 @@
-use crate::{actor::Actor, wire::{HashTuple, HashValue}};
+use crate::{
+    actor::Actor,
+    wire::{HashTuple, HashValue},
+};
 use bitcoin::{
     secp256k1::{All, Secp256k1},
     taproot::TaprootSpendInfo,
