@@ -1,8 +1,7 @@
-
 use std::collections::BTreeMap;
 use std::iter::zip;
 
-use std::sync::{Mutex, Arc};
+use std::sync::{Arc, Mutex};
 
 use crate::wire::HashTuple;
 

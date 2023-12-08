@@ -2,8 +2,8 @@ use std::borrow::BorrowMut;
 
 use bitcoin::absolute::{Height, LockTime};
 use bitcoin::hashes::Hash;
-use bitcoin::secp256k1::Message;
 use bitcoin::secp256k1::schnorr::Signature;
+use bitcoin::secp256k1::Message;
 use bitcoin::sighash::SighashCache;
 use bitcoin::taproot::LeafVersion;
 use bitcoin::{secp256k1::Secp256k1, Amount, Transaction, XOnlyPublicKey};
@@ -163,7 +163,6 @@ async fn main() {
             output: outputs1.clone(),
         };
 
-
         if i != 0 {
             // Verifier needs needs to give signature to prover so that prover can give a response
             let mut sighash_cache = SighashCache::new(challenge_tx.borrow_mut());
@@ -186,7 +185,6 @@ async fn main() {
                 &verifier_public_key,
             )
             .unwrap();
-    
         }
 
         let mut response_tx = Transaction {

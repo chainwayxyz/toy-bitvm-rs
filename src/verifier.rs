@@ -93,8 +93,11 @@ async fn handle_connection(stream: TcpStream) {
 
     for i in 0..bisection_length as u64 {
         println!("Bisection iteration {}", i);
-        let challenge_hashes: Vec<HashValue> = verifier.generate_challenge_hashes(circuit.num_gates());
-        send_message(&mut ws_stream, &challenge_hashes).await.unwrap();
+        let challenge_hashes: Vec<HashValue> =
+            verifier.generate_challenge_hashes(circuit.num_gates());
+        send_message(&mut ws_stream, &challenge_hashes)
+            .await
+            .unwrap();
 
         let (challenge_address, _) = generate_challenge_address_and_info(
             &secp,

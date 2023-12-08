@@ -8,7 +8,6 @@ use crate::transactions::add_bit_commitment_script;
 use crate::wire::HashValue;
 use crate::{traits::gate::GateTrait, wire::Wire};
 
-
 use std::sync::{Arc, Mutex};
 
 // Every gate has a type parameter COM, which is a bit commitment scheme which can be hash based or schnorr based.
@@ -46,10 +45,8 @@ impl GateTrait for NotGate {
             builder,
         )
         .push_opcode(OP_TOALTSTACK);
-        let builder = add_bit_commitment_script(
-            self.input_wires[0].lock().unwrap().get_hash_pair(),
-            builder,
-        );
+        let builder =
+            add_bit_commitment_script(self.input_wires[0].lock().unwrap().get_hash_pair(), builder);
         builder
             .push_opcode(OP_NOT)
             .push_opcode(OP_FROMALTSTACK)
@@ -93,15 +90,11 @@ impl GateTrait for AndGate {
             builder,
         )
         .push_opcode(OP_TOALTSTACK);
-        let builder = add_bit_commitment_script(
-            self.input_wires[0].lock().unwrap().get_hash_pair(),
-            builder,
-        )
-        .push_opcode(OP_TOALTSTACK);
-        let builder = add_bit_commitment_script(
-            self.input_wires[0].lock().unwrap().get_hash_pair(),
-            builder,
-        );
+        let builder =
+            add_bit_commitment_script(self.input_wires[0].lock().unwrap().get_hash_pair(), builder)
+                .push_opcode(OP_TOALTSTACK);
+        let builder =
+            add_bit_commitment_script(self.input_wires[0].lock().unwrap().get_hash_pair(), builder);
         builder
             .push_opcode(OP_FROMALTSTACK)
             .push_opcode(OP_AND)
@@ -127,8 +120,6 @@ impl XorGate {
 
 impl GateTrait for XorGate {
     fn evaluate(&mut self) {
-        
-
         let in1 = &mut self.input_wires[0].lock().unwrap();
         let in2 = &mut self.input_wires[1].lock().unwrap();
         let out = &mut self.output_wires[0].lock().unwrap();
@@ -148,15 +139,11 @@ impl GateTrait for XorGate {
             builder,
         )
         .push_opcode(OP_TOALTSTACK);
-        let builder = add_bit_commitment_script(
-            self.input_wires[0].lock().unwrap().get_hash_pair(),
-            builder,
-        )
-        .push_opcode(OP_TOALTSTACK);
-        let builder = add_bit_commitment_script(
-            self.input_wires[0].lock().unwrap().get_hash_pair(),
-            builder,
-        );
+        let builder =
+            add_bit_commitment_script(self.input_wires[0].lock().unwrap().get_hash_pair(), builder)
+                .push_opcode(OP_TOALTSTACK);
+        let builder =
+            add_bit_commitment_script(self.input_wires[0].lock().unwrap().get_hash_pair(), builder);
         builder
             .push_opcode(OP_FROMALTSTACK)
             .push_opcode(OP_XOR)
