@@ -1,7 +1,8 @@
-use std::cell::RefCell;
+
 use std::collections::BTreeMap;
 use std::iter::zip;
-use std::rc::Rc;
+
+use std::sync::{Mutex, Arc};
 
 use crate::wire::HashTuple;
 
@@ -15,13 +16,13 @@ use crate::{
 pub struct Circuit {
     pub input_sizes: Vec<usize>,
     pub output_sizes: Vec<usize>,
-    pub gates: Vec<Box<dyn GateTrait>>,
-    pub wires: Vec<Rc<RefCell<Wire>>>,
+    pub gates: Vec<Box<dyn GateTrait + Send>>,
+    pub wires: Vec<Arc<Mutex<Wire>>>,
 }
 
 impl Default for Circuit {
     fn default() -> Self {
-        Self::from_bristol("bristol/test.txt")
+        Self::from_bristol("bristol/test.txt", None)
     }
 }
 
@@ -46,7 +47,7 @@ impl Circuit {
             combined_inputs.extend(a);
         }
         for (i, value) in combined_inputs.iter().enumerate() {
-            self.wires[i].try_borrow_mut().unwrap().selector = Some(*value);
+            self.wires[i].lock().unwrap().selector = Some(*value);
         }
         for gate in self.gates.as_mut_slice() {
             gate.evaluate();
@@ -57,7 +58,7 @@ impl Circuit {
         for os in self.output_sizes.clone() {
             let mut output_vec = Vec::new();
             for i in output_index..(output_index + os) {
-                let value = self.wires[i].try_borrow_mut().unwrap().selector.unwrap();
+                let value = self.wires[i].lock().unwrap().selector.unwrap();
                 output_vec.push(value);
             }
             output_index += os;
@@ -70,18 +71,18 @@ impl Circuit {
         self.wires
             .iter()
             .map(|wire_rcref| {
-                let wire = wire_rcref.try_borrow_mut().unwrap();
+                let wire = wire_rcref.lock().unwrap();
                 wire.get_hash_pair()
             })
             .collect::<Vec<HashTuple>>()
     }
 
-    pub fn from_bristol(file: &str) -> Self {
+    pub fn from_bristol(file: &str, wire_hashes: Option<Vec<HashTuple>>) -> Self {
         let mut nog: usize = 0; // number of gates
         let mut now: usize = 0; // number of wires
         let mut input_sizes = Vec::<usize>::new();
         let mut output_sizes = Vec::<usize>::new();
-        let mut gates = Vec::<Box<dyn GateTrait>>::new();
+        let mut gates = Vec::<Box<dyn GateTrait + Send>>::new();
         let mut wire_indices = BTreeMap::new();
 
         for (i, line) in read_lines(file).unwrap().enumerate() {
@@ -91,8 +92,12 @@ impl Circuit {
                     nog = words.next().unwrap().parse().unwrap();
                     now = words.next().unwrap().parse().unwrap();
                     for i in 0..now {
-                        let wire = Wire::new(i);
-                        wire_indices.insert(i, Rc::new(RefCell::new(wire)));
+                        let wire = if let Some(wire_hashes) = wire_hashes.clone() {
+                            Wire::new_with_hash_pair(i, wire_hashes[i])
+                        } else {
+                            Wire::new(i)
+                        };
+                        wire_indices.insert(i, Arc::new(Mutex::new(wire)));
                     }
                 } else if i == 1 {
                     let mut words = line_str.split_whitespace();
@@ -174,7 +179,7 @@ impl Circuit {
             wires: wire_indices
                 .values()
                 .cloned()
-                .collect::<Vec<Rc<RefCell<Wire>>>>(),
+                .collect::<Vec<Arc<Mutex<Wire>>>>(),
         };
     }
 }
@@ -201,13 +206,13 @@ mod tests {
 
     #[test]
     fn test_bristol() {
-        let circuit = Circuit::from_bristol("bristol/add.txt");
+        let circuit = Circuit::from_bristol("bristol/add.txt", None);
         assert!(circuit.output_sizes[0] == 64);
     }
 
     #[test]
     fn test_add_circuit() {
-        let mut circuit = Circuit::from_bristol("bristol/add.txt");
+        let mut circuit = Circuit::from_bristol("bristol/add.txt", None);
         let a1 = 633;
         let a2 = 15;
         let b1 = number_to_bool_array(a1, 64);
@@ -220,7 +225,7 @@ mod tests {
 
     #[test]
     fn test_challenge_tree() {
-        let circuit = Circuit::from_bristol("bristol/test.txt");
+        let circuit = Circuit::from_bristol("bristol/test.txt", None);
         let prover = Actor::new();
         let mut verifier = Actor::new();
         let secp = Secp256k1::new();
@@ -232,10 +237,10 @@ mod tests {
             &circuit,
             prover.public_key,
             verifier.public_key,
-            challenge_hashes,
+            &challenge_hashes,
         );
         for wire_rcref in circuit.wires.iter() {
-            let wire = wire_rcref.try_borrow_mut().unwrap();
+            let wire = wire_rcref.lock().unwrap();
             let script =
                 generate_anti_contradiction_script(wire.get_hash_pair(), verifier.public_key);
             let ctrl_block = tree_info

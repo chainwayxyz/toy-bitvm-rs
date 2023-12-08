@@ -72,7 +72,7 @@ impl Actor {
     }
 
     pub fn generate_challenge_hashes(&mut self, num_gates: usize) -> Vec<HashValue> {
-        let mut challenge_hashes = Vec::new();
+        let mut challenge_hashes: Vec<HashValue> = Vec::new();
         let mut rng = rand::thread_rng();
         let mut preimages = Vec::new();
         for _ in 0..num_gates {

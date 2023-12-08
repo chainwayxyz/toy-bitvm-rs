@@ -7,18 +7,19 @@ use bitcoin::ScriptBuf;
 use crate::transactions::add_bit_commitment_script;
 use crate::wire::HashValue;
 use crate::{traits::gate::GateTrait, wire::Wire};
-use std::cell::RefCell;
-use std::rc::Rc;
+
+
+use std::sync::{Arc, Mutex};
 
 // Every gate has a type parameter COM, which is a bit commitment scheme which can be hash based or schnorr based.
 // Every gate has an array of input wire pointers.
 pub struct NotGate {
-    pub input_wires: Vec<Rc<RefCell<Wire>>>,
-    pub output_wires: Vec<Rc<RefCell<Wire>>>,
+    pub input_wires: Vec<Arc<Mutex<Wire>>>,
+    pub output_wires: Vec<Arc<Mutex<Wire>>>,
 }
 
 impl NotGate {
-    pub fn new(input_wires: Vec<Rc<RefCell<Wire>>>, output_wires: Vec<Rc<RefCell<Wire>>>) -> Self {
+    pub fn new(input_wires: Vec<Arc<Mutex<Wire>>>, output_wires: Vec<Arc<Mutex<Wire>>>) -> Self {
         NotGate {
             input_wires,
             output_wires,
@@ -28,8 +29,8 @@ impl NotGate {
 
 impl GateTrait for NotGate {
     fn evaluate(&mut self) {
-        let in1 = &mut self.input_wires[0].try_borrow_mut().unwrap();
-        let out = &mut self.output_wires[0].try_borrow_mut().unwrap();
+        let in1 = &mut self.input_wires[0].lock().unwrap();
+        let out = &mut self.output_wires[0].lock().unwrap();
         let u = in1.selector.as_mut().unwrap();
         let w = !*u;
         out.selector = Some(w);
@@ -41,12 +42,12 @@ impl GateTrait for NotGate {
             .push_slice(lock_hash)
             .push_opcode(OP_EQUALVERIFY);
         let builder = add_bit_commitment_script(
-            self.output_wires[0].try_borrow().unwrap().get_hash_pair(),
+            self.output_wires[0].lock().unwrap().get_hash_pair(),
             builder,
         )
         .push_opcode(OP_TOALTSTACK);
         let builder = add_bit_commitment_script(
-            self.input_wires[0].try_borrow().unwrap().get_hash_pair(),
+            self.input_wires[0].lock().unwrap().get_hash_pair(),
             builder,
         );
         builder
@@ -58,12 +59,12 @@ impl GateTrait for NotGate {
 }
 
 pub struct AndGate {
-    pub input_wires: Vec<Rc<RefCell<Wire>>>,
-    pub output_wires: Vec<Rc<RefCell<Wire>>>,
+    pub input_wires: Vec<Arc<Mutex<Wire>>>,
+    pub output_wires: Vec<Arc<Mutex<Wire>>>,
 }
 
 impl AndGate {
-    pub fn new(input_wires: Vec<Rc<RefCell<Wire>>>, output_wires: Vec<Rc<RefCell<Wire>>>) -> Self {
+    pub fn new(input_wires: Vec<Arc<Mutex<Wire>>>, output_wires: Vec<Arc<Mutex<Wire>>>) -> Self {
         AndGate {
             input_wires,
             output_wires,
@@ -73,9 +74,9 @@ impl AndGate {
 
 impl GateTrait for AndGate {
     fn evaluate(&mut self) {
-        let in1 = &mut self.input_wires[0].try_borrow_mut().unwrap();
-        let in2 = &mut self.input_wires[1].try_borrow_mut().unwrap();
-        let out = &mut self.output_wires[0].try_borrow_mut().unwrap();
+        let in1 = &mut self.input_wires[0].lock().unwrap();
+        let in2 = &mut self.input_wires[1].lock().unwrap();
+        let out = &mut self.output_wires[0].lock().unwrap();
         let u = in1.selector.as_mut().unwrap();
         let v = in2.selector.as_mut().unwrap();
         let w = *u && *v;
@@ -88,17 +89,17 @@ impl GateTrait for AndGate {
             .push_slice(lock_hash)
             .push_opcode(OP_EQUALVERIFY);
         let builder = add_bit_commitment_script(
-            self.output_wires[0].try_borrow().unwrap().get_hash_pair(),
+            self.output_wires[0].lock().unwrap().get_hash_pair(),
             builder,
         )
         .push_opcode(OP_TOALTSTACK);
         let builder = add_bit_commitment_script(
-            self.input_wires[0].try_borrow().unwrap().get_hash_pair(),
+            self.input_wires[0].lock().unwrap().get_hash_pair(),
             builder,
         )
         .push_opcode(OP_TOALTSTACK);
         let builder = add_bit_commitment_script(
-            self.input_wires[0].try_borrow().unwrap().get_hash_pair(),
+            self.input_wires[0].lock().unwrap().get_hash_pair(),
             builder,
         );
         builder
@@ -111,12 +112,12 @@ impl GateTrait for AndGate {
 }
 
 pub struct XorGate {
-    pub input_wires: Vec<Rc<RefCell<Wire>>>,
-    pub output_wires: Vec<Rc<RefCell<Wire>>>,
+    pub input_wires: Vec<Arc<Mutex<Wire>>>,
+    pub output_wires: Vec<Arc<Mutex<Wire>>>,
 }
 
 impl XorGate {
-    pub fn new(input_wires: Vec<Rc<RefCell<Wire>>>, output_wires: Vec<Rc<RefCell<Wire>>>) -> Self {
+    pub fn new(input_wires: Vec<Arc<Mutex<Wire>>>, output_wires: Vec<Arc<Mutex<Wire>>>) -> Self {
         XorGate {
             input_wires,
             output_wires,
@@ -126,9 +127,11 @@ impl XorGate {
 
 impl GateTrait for XorGate {
     fn evaluate(&mut self) {
-        let in1 = &mut self.input_wires[0].try_borrow_mut().unwrap();
-        let in2 = &mut self.input_wires[1].try_borrow_mut().unwrap();
-        let out = &mut self.output_wires[0].try_borrow_mut().unwrap();
+        
+
+        let in1 = &mut self.input_wires[0].lock().unwrap();
+        let in2 = &mut self.input_wires[1].lock().unwrap();
+        let out = &mut self.output_wires[0].lock().unwrap();
         let u = in1.selector.as_mut().unwrap();
         let v = in2.selector.as_mut().unwrap();
         let w = *u ^ *v;
@@ -141,17 +144,17 @@ impl GateTrait for XorGate {
             .push_slice(lock_hash)
             .push_opcode(OP_EQUALVERIFY);
         let builder = add_bit_commitment_script(
-            self.output_wires[0].try_borrow().unwrap().get_hash_pair(),
+            self.output_wires[0].lock().unwrap().get_hash_pair(),
             builder,
         )
         .push_opcode(OP_TOALTSTACK);
         let builder = add_bit_commitment_script(
-            self.input_wires[0].try_borrow().unwrap().get_hash_pair(),
+            self.input_wires[0].lock().unwrap().get_hash_pair(),
             builder,
         )
         .push_opcode(OP_TOALTSTACK);
         let builder = add_bit_commitment_script(
-            self.input_wires[0].try_borrow().unwrap().get_hash_pair(),
+            self.input_wires[0].lock().unwrap().get_hash_pair(),
             builder,
         );
         builder
@@ -184,8 +187,8 @@ mod tests {
         let output_wire_0_preimages = output_wire_0.preimages.unwrap();
 
         let not_gate = NotGate::new(
-            vec![Rc::new(RefCell::new(input_wire_0))],
-            vec![Rc::new(RefCell::new(output_wire_0))],
+            vec![Arc::new(Mutex::new(input_wire_0))],
+            vec![Arc::new(Mutex::new(output_wire_0))],
         );
 
         let mut rng = rand::thread_rng();

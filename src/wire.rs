@@ -65,6 +65,15 @@ impl Wire {
         }
     }
 
+    pub fn new_with_hash_pair(index: usize, hash_pair: HashTuple) -> Self {
+        Wire {
+            preimages: None,
+            hashes: hash_pair,
+            selector: None,
+            index: Some(index),
+        }
+    }
+
     pub fn get_hash_pair(&self) -> HashTuple {
         self.hashes
     }
