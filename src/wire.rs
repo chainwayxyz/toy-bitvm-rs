@@ -73,7 +73,7 @@ impl Wire {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_wire() {
         let wire = Wire::new(0);

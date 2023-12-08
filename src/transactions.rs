@@ -4,11 +4,10 @@ use bitcoin::secp256k1::{All, Secp256k1};
 use bitcoin::taproot::{TaprootBuilder, TaprootSpendInfo};
 use bitcoin::{Address, ScriptBuf, XOnlyPublicKey};
 
-
 use bitcoin::blockdata::script::Builder;
 use bitcoin::opcodes::all::*;
 
-use crate::wire::{HashValue, HashTuple};
+use crate::wire::{HashTuple, HashValue};
 
 use crate::circuit::Circuit;
 
@@ -77,13 +76,19 @@ pub fn generate_challenge_address_and_info(
         .collect::<Vec<ScriptBuf>>();
     // let mut reveal_challenge_scripts =
     scripts.extend(circuit.wires.iter().map(|wire_rcref| {
-        generate_anti_contradiction_script(wire_rcref.try_borrow_mut().unwrap().get_hash_pair(), verifier_pk)
+        generate_anti_contradiction_script(
+            wire_rcref.try_borrow_mut().unwrap().get_hash_pair(),
+            verifier_pk,
+        )
     }));
     scripts.push(generate_timelock_script(prover_pk, 10));
     taproot_address_from_script_leaves(secp, scripts)
 }
 
-pub fn generate_anti_contradiction_script(wire_bit_hashes: HashTuple, verifier_pk: XOnlyPublicKey) -> ScriptBuf {
+pub fn generate_anti_contradiction_script(
+    wire_bit_hashes: HashTuple,
+    verifier_pk: XOnlyPublicKey,
+) -> ScriptBuf {
     Builder::new()
         .push_opcode(OP_SHA256)
         .push_slice(wire_bit_hashes.zero)
@@ -110,7 +115,11 @@ pub fn add_bit_commitment_script(wire_bit_hashes: HashTuple, builder: Builder) -
         .push_opcode(OP_VERIFY)
 }
 
-pub fn generate_challenge_script(prover_pk: XOnlyPublicKey, verifier_pk: XOnlyPublicKey, challenge_hash: &HashValue) -> ScriptBuf {
+pub fn generate_challenge_script(
+    prover_pk: XOnlyPublicKey,
+    verifier_pk: XOnlyPublicKey,
+    challenge_hash: &HashValue,
+) -> ScriptBuf {
     Builder::new()
         .push_slice(challenge_hash)
         .push_opcode(OP_EQUALVERIFY)

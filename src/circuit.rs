@@ -188,7 +188,10 @@ mod tests {
     use crate::actor::Actor;
     use crate::utils::{bool_array_to_number, number_to_bool_array};
 
-    use crate::transactions::{generate_challenge_address_and_info, generate_anti_contradiction_script, generate_timelock_script};
+    use crate::transactions::{
+        generate_anti_contradiction_script, generate_challenge_address_and_info,
+        generate_timelock_script,
+    };
 
     #[test]
     fn test_circuit() {
@@ -224,11 +227,17 @@ mod tests {
 
         let challenge_hashes = verifier.generate_challenge_hashes(circuit.num_gates());
 
-        let (_address, tree_info) =
-            generate_challenge_address_and_info(&secp, &circuit, prover.public_key, verifier.public_key, challenge_hashes);
+        let (_address, tree_info) = generate_challenge_address_and_info(
+            &secp,
+            &circuit,
+            prover.public_key,
+            verifier.public_key,
+            challenge_hashes,
+        );
         for wire_rcref in circuit.wires.iter() {
             let wire = wire_rcref.try_borrow_mut().unwrap();
-            let script = generate_anti_contradiction_script(wire.get_hash_pair(), verifier.public_key);
+            let script =
+                generate_anti_contradiction_script(wire.get_hash_pair(), verifier.public_key);
             let ctrl_block = tree_info
                 .control_block(&(script.clone(), LeafVersion::TapScript))
                 .unwrap();

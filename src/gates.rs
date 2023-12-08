@@ -40,12 +40,15 @@ impl GateTrait for NotGate {
             .push_opcode(OP_SHA256)
             .push_slice(lock_hash)
             .push_opcode(OP_EQUALVERIFY);
-        let builder = add_bit_commitment_script(self.output_wires[0]
-            .try_borrow()
-            .unwrap().get_hash_pair(), builder).push_opcode(OP_TOALTSTACK);
-        let builder = add_bit_commitment_script(self.input_wires[0]
-            .try_borrow()
-            .unwrap().get_hash_pair(), builder);
+        let builder = add_bit_commitment_script(
+            self.output_wires[0].try_borrow().unwrap().get_hash_pair(),
+            builder,
+        )
+        .push_opcode(OP_TOALTSTACK);
+        let builder = add_bit_commitment_script(
+            self.input_wires[0].try_borrow().unwrap().get_hash_pair(),
+            builder,
+        );
         builder
             .push_opcode(OP_NOT)
             .push_opcode(OP_FROMALTSTACK)
@@ -84,15 +87,20 @@ impl GateTrait for AndGate {
             .push_opcode(OP_SHA256)
             .push_slice(lock_hash)
             .push_opcode(OP_EQUALVERIFY);
-        let builder = add_bit_commitment_script(self.output_wires[0]
-            .try_borrow()
-            .unwrap().get_hash_pair(), builder).push_opcode(OP_TOALTSTACK);
-        let builder = add_bit_commitment_script(self.input_wires[0]
-            .try_borrow()
-            .unwrap().get_hash_pair(), builder).push_opcode(OP_TOALTSTACK);
-        let builder = add_bit_commitment_script(self.input_wires[0]
-            .try_borrow()
-            .unwrap().get_hash_pair(), builder);
+        let builder = add_bit_commitment_script(
+            self.output_wires[0].try_borrow().unwrap().get_hash_pair(),
+            builder,
+        )
+        .push_opcode(OP_TOALTSTACK);
+        let builder = add_bit_commitment_script(
+            self.input_wires[0].try_borrow().unwrap().get_hash_pair(),
+            builder,
+        )
+        .push_opcode(OP_TOALTSTACK);
+        let builder = add_bit_commitment_script(
+            self.input_wires[0].try_borrow().unwrap().get_hash_pair(),
+            builder,
+        );
         builder
             .push_opcode(OP_FROMALTSTACK)
             .push_opcode(OP_AND)
@@ -132,15 +140,20 @@ impl GateTrait for XorGate {
             .push_opcode(OP_SHA256)
             .push_slice(lock_hash)
             .push_opcode(OP_EQUALVERIFY);
-        let builder = add_bit_commitment_script(self.output_wires[0]
-            .try_borrow()
-            .unwrap().get_hash_pair(), builder).push_opcode(OP_TOALTSTACK);
-        let builder = add_bit_commitment_script(self.input_wires[0]
-            .try_borrow()
-            .unwrap().get_hash_pair(), builder).push_opcode(OP_TOALTSTACK);
-        let builder = add_bit_commitment_script(self.input_wires[0]
-            .try_borrow()
-            .unwrap().get_hash_pair(), builder);
+        let builder = add_bit_commitment_script(
+            self.output_wires[0].try_borrow().unwrap().get_hash_pair(),
+            builder,
+        )
+        .push_opcode(OP_TOALTSTACK);
+        let builder = add_bit_commitment_script(
+            self.input_wires[0].try_borrow().unwrap().get_hash_pair(),
+            builder,
+        )
+        .push_opcode(OP_TOALTSTACK);
+        let builder = add_bit_commitment_script(
+            self.input_wires[0].try_borrow().unwrap().get_hash_pair(),
+            builder,
+        );
         builder
             .push_opcode(OP_FROMALTSTACK)
             .push_opcode(OP_XOR)
