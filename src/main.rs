@@ -2,15 +2,14 @@ use bitcoin::absolute::{Height, LockTime};
 use bitcoin::consensus::encode::serialize_hex;
 use bitcoin::consensus::Decodable;
 
-use bitcoin::secp256k1::{Secp256k1};
+use bitcoin::secp256k1::Secp256k1;
 use bitcoin::sighash::SighashCache;
-use bitcoin::taproot::{LeafVersion};
+use bitcoin::taproot::LeafVersion;
 use bitcoin::{Amount, OutPoint, ScriptBuf, TapLeafHash, Transaction, TxIn, TxOut, Witness};
 
 use bitcoincore_rpc::{Auth, Client, RpcApi};
 use bitvm::actor::Actor;
 use bitvm::traits::wire::WireTrait;
-
 
 use bitvm::{circuit::Circuit, traits::circuit::CircuitTrait};
 
