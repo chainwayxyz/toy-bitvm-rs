@@ -1,7 +1,7 @@
 // verifier.rs
 use bitvm::{
     actor::Actor,
-    communication::{receive_message, send_message},
+    communication::{receive_message, send_message}, wire::HashTuple,
 };
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::accept_async;
@@ -31,7 +31,7 @@ async fn handle_connection(stream: TcpStream) {
         .await
         .unwrap();
 
-    let wire_hashes: Vec<[[u8; 32]; 2]> = receive_message(&mut ws_stream).await.unwrap();
+    let wire_hashes: Vec<HashTuple> = receive_message(&mut ws_stream).await.unwrap();
 
     println!("Wire hashes: {:?}", wire_hashes);
 }

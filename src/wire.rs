@@ -11,16 +11,19 @@ use rand::Rng;
 use serde::Deserialize;
 use serde::Serialize;
 
+pub type HashValue = [u8; 32];
+pub type PreimageValue = [u8; 32];
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct HashTuple {
-    pub zero: [u8; 32],
-    pub one: [u8; 32],
+    pub zero: HashValue,
+    pub one: HashValue,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct PreimageTuple {
-    pub zero: [u8; 32],
-    pub one: [u8; 32],
+    pub zero: PreimageValue,
+    pub one: PreimageValue,
 }
 
 #[derive(Clone)]
