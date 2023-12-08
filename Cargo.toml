@@ -10,6 +10,13 @@ bitcoin = {version = "0.31.0", features = ["rand"]}
 bitcoincore-rpc = {version = "0.18.0" }
 hex = "0.4.3"
 rand = "0.8.5"
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = "0.15"
+url = "2.2.0"
+futures-util = "0.3"
+serde = "1.0.193"
+serde_json = "1.0.108"
+
 
 [dev-dependencies]
 bitcoin-scriptexec = { git = "https://github.com/ekrembal/rust-bitcoin-scriptexec" }
@@ -18,3 +25,10 @@ bitcoin-scriptexec = { git = "https://github.com/ekrembal/rust-bitcoin-scriptexe
 # rpc = ["bitcoincore-rpc"]
 
 
+[[bin]]
+name = "prover"
+path = "src/prover.rs"
+
+[[bin]]
+name = "verifier"
+path = "src/verifier.rs"

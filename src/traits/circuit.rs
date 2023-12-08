@@ -11,6 +11,8 @@ pub trait CircuitTrait {
 
     fn evaluate(&mut self, inputs: Vec<Vec<bool>>) -> Vec<Vec<bool>>;
 
+    fn get_wire_hashes(&self) -> Vec<[[u8; 32]; 2]>;
+
     fn from_bristol(file: &str) -> Self;
 
     fn generate_challenge_tree(
