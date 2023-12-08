@@ -4,11 +4,11 @@ use bitcoin::XOnlyPublicKey;
 use bitvm::{
     circuit::Circuit,
     communication::{receive_message, send_message},
-    traits::circuit::CircuitTrait, wire::HashTuple,
+    traits::circuit::CircuitTrait,
+    wire::HashTuple,
 };
 
 use tokio_tungstenite::connect_async;
-
 
 #[tokio::main]
 async fn main() {

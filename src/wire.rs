@@ -23,8 +23,6 @@ pub struct PreimageTuple {
     pub one: [u8; 32],
 }
 
-
-
 #[derive(Clone)]
 pub struct Wire {
     pub preimages: Option<PreimageTuple>,
@@ -56,8 +54,14 @@ impl Wire {
         let hash2 = sha256::Hash::hash(&preimage2).to_byte_array();
 
         Wire {
-            preimages: Some(PreimageTuple { zero: preimage1, one: preimage2 }),
-            hashes: HashTuple { zero: hash1, one: hash2 },
+            preimages: Some(PreimageTuple {
+                zero: preimage1,
+                one: preimage2,
+            }),
+            hashes: HashTuple {
+                zero: hash1,
+                one: hash2,
+            },
             selector: None,
             index: Some(index),
         }
