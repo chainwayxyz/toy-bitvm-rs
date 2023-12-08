@@ -3,18 +3,11 @@ use std::collections::BTreeMap;
 use std::iter::zip;
 use std::rc::Rc;
 
-use bitcoin::secp256k1::All;
-use bitcoin::secp256k1::Secp256k1;
-use bitcoin::taproot::TaprootSpendInfo;
-use bitcoin::{Address, ScriptBuf};
-
-use crate::actor::Actor;
-use crate::utils::taproot_address_from_script_leaves;
 use crate::wire::HashTuple;
-use crate::wire::HashValue;
+
 use crate::{
     gates::{AndGate, NotGate, XorGate},
-    traits::{circuit::CircuitTrait, gate::GateTrait, wire::WireTrait},
+    traits::gate::GateTrait,
     utils::read_lines,
     wire::Wire,
 };
@@ -28,27 +21,16 @@ pub struct Circuit {
 
 impl Default for Circuit {
     fn default() -> Self {
-        Self::new()
+        Self::from_bristol("bristol/test.txt")
     }
 }
 
 impl Circuit {
-    pub fn new() -> Self {
-        Circuit {
-            input_sizes: vec![32, 32],
-            output_sizes: vec![32],
-            gates: vec![Box::new(NotGate::new(vec![], vec![]))],
-            wires: vec![],
-        }
-    }
-}
-
-impl CircuitTrait for Circuit {
-    fn num_gates(&self) -> usize {
+    pub fn num_gates(&self) -> usize {
         self.gates.len()
     }
 
-    fn evaluate(&mut self, inputs: Vec<Vec<bool>>) -> Vec<Vec<bool>> {
+    pub fn evaluate(&mut self, inputs: Vec<Vec<bool>>) -> Vec<Vec<bool>> {
         assert_eq!(
             inputs.len(),
             self.input_sizes.len(),
@@ -84,7 +66,7 @@ impl CircuitTrait for Circuit {
         output
     }
 
-    fn get_wire_hashes(&self) -> Vec<HashTuple> {
+    pub fn get_wire_hashes(&self) -> Vec<HashTuple> {
         self.wires
             .iter()
             .map(|wire_rcref| {
@@ -94,7 +76,7 @@ impl CircuitTrait for Circuit {
             .collect::<Vec<HashTuple>>()
     }
 
-    fn from_bristol(file: &str) -> Self {
+    pub fn from_bristol(file: &str) -> Self {
         let mut nog: usize = 0; // number of gates
         let mut now: usize = 0; // number of wires
         let mut input_sizes = Vec::<usize>::new();
@@ -195,69 +177,23 @@ impl CircuitTrait for Circuit {
                 .collect::<Vec<Rc<RefCell<Wire>>>>(),
         };
     }
-
-    fn generate_response_tree(
-        &self,
-        secp: &Secp256k1<All>,
-        _prover: &Actor,
-        verifier: &Actor,
-        challenge_hashes: Vec<HashValue>,
-    ) -> (Address, TaprootSpendInfo) {
-        assert_eq!(
-            challenge_hashes.len(),
-            self.gates.len(),
-            "wrong number of challenge hashes"
-        );
-        let mut scripts = self
-            .gates
-            .iter()
-            .zip(challenge_hashes.iter())
-            .map(|(gate, hash)| gate.create_response_script(*hash))
-            .collect::<Vec<ScriptBuf>>();
-        scripts.push(verifier.generate_timelock_script(10));
-        taproot_address_from_script_leaves(secp, scripts)
-    }
-
-    fn generate_challenge_tree(
-        &self,
-        secp: &Secp256k1<All>,
-        prover: &Actor,
-        verifier: &Actor,
-        challenge_hashes: Vec<HashValue>,
-    ) -> (Address, TaprootSpendInfo) {
-        assert_eq!(
-            challenge_hashes.len(),
-            self.gates.len(),
-            "wrong number of challenge hashes"
-        );
-        let mut scripts = challenge_hashes
-            .iter()
-            .map(|x| verifier.generate_challenge_script(x))
-            .collect::<Vec<ScriptBuf>>();
-        // let mut reveal_challenge_scripts =
-        scripts.extend(self.wires.iter().map(|wire_rcref| {
-            wire_rcref
-                .try_borrow_mut()
-                .unwrap()
-                .generate_anti_contradiction_script(verifier.public_key)
-        }));
-        scripts.push(prover.generate_timelock_script(10));
-        taproot_address_from_script_leaves(secp, scripts)
-    }
 }
 
 #[cfg(test)]
 mod tests {
+    use bitcoin::secp256k1::Secp256k1;
     use bitcoin::taproot::LeafVersion;
 
     use super::*;
     use crate::actor::Actor;
     use crate::utils::{bool_array_to_number, number_to_bool_array};
 
+    use crate::transactions::{generate_challenge_address_and_info, generate_anti_contradiction_script, generate_timelock_script};
+
     #[test]
     fn test_circuit() {
-        let circuit = Circuit::new();
-        assert!(circuit.output_sizes[0] == 32);
+        let circuit = Circuit::default();
+        assert!(circuit.output_sizes[0] == 1);
     }
 
     #[test]
@@ -289,10 +225,10 @@ mod tests {
         let challenge_hashes = verifier.generate_challenge_hashes(circuit.num_gates());
 
         let (_address, tree_info) =
-            circuit.generate_challenge_tree(&secp, &prover, &verifier, challenge_hashes);
+            generate_challenge_address_and_info(&secp, &circuit, prover.public_key, verifier.public_key, challenge_hashes);
         for wire_rcref in circuit.wires.iter() {
             let wire = wire_rcref.try_borrow_mut().unwrap();
-            let script = wire.generate_anti_contradiction_script(verifier.public_key);
+            let script = generate_anti_contradiction_script(wire.get_hash_pair(), verifier.public_key);
             let ctrl_block = tree_info
                 .control_block(&(script.clone(), LeafVersion::TapScript))
                 .unwrap();
@@ -303,7 +239,7 @@ mod tests {
             ));
         }
         // TODO: add tests for reveral challenge scripts
-        let p10_script = prover.generate_timelock_script(10);
+        let p10_script = generate_timelock_script(prover.public_key, 10);
         let p10_ctrl_block = tree_info
             .control_block(&(p10_script.clone(), LeafVersion::TapScript))
             .unwrap();

@@ -1,13 +1,11 @@
 use bitcoin::hashes::sha256;
-use bitcoin::opcodes::all::*;
 use bitcoin::TapNodeHash;
 use bitcoin::{
     hashes::Hash,
-    script::Builder,
     secp256k1::{
         rand, schnorr::Signature, All, Keypair, Message, Secp256k1, SecretKey, XOnlyPublicKey,
     },
-    Address, ScriptBuf, TapSighash, TapTweakHash,
+    Address, TapSighash, TapTweakHash,
 };
 use rand::Rng;
 
@@ -47,15 +45,6 @@ impl Actor {
         }
     }
 
-    pub fn generate_timelock_script(&self, block_count: u32) -> ScriptBuf {
-        Builder::new()
-            .push_int(block_count as i64)
-            .push_opcode(OP_CSV)
-            .push_x_only_key(&self.public_key)
-            .push_opcode(OP_CHECKSIG)
-            .into_script()
-    }
-
     pub fn sign_with_tweak(
         &self,
         sighash: TapSighash,
@@ -93,15 +82,6 @@ impl Actor {
         }
         self.challenge_preimages.push(preimages);
         challenge_hashes
-    }
-
-    pub fn generate_challenge_script(&self, challenge_hash: &HashValue) -> ScriptBuf {
-        Builder::new()
-            .push_slice(challenge_hash)
-            .push_opcode(OP_EQUALVERIFY)
-            .push_x_only_key(&self.public_key)
-            .push_opcode(OP_CHECKSIG)
-            .into_script()
     }
 }
 
