@@ -7,8 +7,14 @@ edition = "2021"
 
 [dependencies]
 bitcoin = {version = "0.31.0", features = ["rand"]}
+bitcoincore-rpc = {version = "0.18.0" }
 hex = "0.4.3"
 rand = "0.8.5"
 
 [dev-dependencies]
 bitcoin-scriptexec = { git = "https://github.com/ekrembal/rust-bitcoin-scriptexec" }
+
+# [features]
+# rpc = ["bitcoincore-rpc"]
+
+

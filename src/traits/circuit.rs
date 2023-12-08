@@ -7,16 +7,25 @@ use bitcoin::{
 
 // This trait defines the behavior of a circuit.
 pub trait CircuitTrait {
+    fn num_gates(&self) -> usize;
+
     fn evaluate(&mut self, inputs: Vec<Vec<bool>>) -> Vec<Vec<bool>>;
 
     fn from_bristol(file: &str) -> Self;
 
-    fn generate_bit_commitment_tree(&self);
-
-    fn generate_anti_contradiction_tree(
+    fn generate_challenge_tree(
         &self,
         secp: &Secp256k1<All>,
         prover: &Actor,
         verifier: &Actor,
+        challenge_hashes: Vec<[u8; 32]>,
+    ) -> (Address, TaprootSpendInfo);
+
+    fn generate_response_tree(
+        &self,
+        secp: &Secp256k1<All>,
+        prover: &Actor,
+        verifier: &Actor,
+        challenge_hashes: Vec<[u8; 32]>,
     ) -> (Address, TaprootSpendInfo);
 }

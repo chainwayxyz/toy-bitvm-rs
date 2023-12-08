@@ -95,7 +95,7 @@ pub fn taproot_address_from_script_leaves(
         secp,
         internal_key,
         tree_info.merkle_root(),
-        bitcoin::Network::Signet,
+        bitcoin::Network::Regtest,
     );
     (address, tree_info)
 }
