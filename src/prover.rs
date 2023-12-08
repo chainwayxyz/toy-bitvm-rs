@@ -4,20 +4,11 @@ use bitcoin::XOnlyPublicKey;
 use bitvm::{
     circuit::Circuit,
     communication::{receive_message, send_message},
-    traits::circuit::CircuitTrait,
+    traits::circuit::CircuitTrait, wire::HashTuple,
 };
 
 use tokio_tungstenite::connect_async;
 
-// #[derive(Serialize, Deserialize, Debug)]
-// struct WireHash {
-//     zero: [u8; 32],
-//     one: [u8; 32],
-// }
-// #[derive(Serialize, Deserialize, Debug)]
-// struct WireHashes {
-//     wire_hashes: Vec<WireHash>,
-// }
 
 #[tokio::main]
 async fn main() {
@@ -35,7 +26,7 @@ async fn main() {
     println!("Verifier public key: {}", verifier_publickey);
 
     let circuit = Circuit::from_bristol("bristol/add.txt");
-    let wire_hashes: Vec<[[u8; 32]; 2]> = circuit.get_wire_hashes();
+    let wire_hashes: Vec<HashTuple> = circuit.get_wire_hashes();
 
     send_message(&mut ws_stream, &wire_hashes).await.unwrap();
 }

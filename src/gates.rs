@@ -194,8 +194,8 @@ mod tests {
         let script = not_gate.create_response_script(lock_hash);
 
         let solution_01_preimages = vec![
-            input_wire_0_preimages[0].clone().to_vec(),
-            output_wire_0_preimages[1].clone().to_vec(),
+            input_wire_0_preimages.zero.clone().to_vec(),
+            output_wire_0_preimages.one.clone().to_vec(),
             lock_preimage.to_vec(),
         ];
         let mut exec_01 = Exec::new(
@@ -230,8 +230,8 @@ mod tests {
         assert_eq!(res.error, None);
 
         let solution_01_preimages = vec![
-            input_wire_0_preimages[0].clone().to_vec(),
-            output_wire_0_preimages[0].clone().to_vec(),
+            input_wire_0_preimages.zero.clone().to_vec(),
+            output_wire_0_preimages.zero.clone().to_vec(),
             lock_preimage.to_vec(),
         ];
         let mut exec_00 = Exec::new(

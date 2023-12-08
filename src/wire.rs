@@ -8,11 +8,27 @@ use bitcoin::opcodes::all::*;
 use bitcoin::ScriptBuf;
 use bitcoin::XOnlyPublicKey;
 use rand::Rng;
+use serde::Deserialize;
+use serde::Serialize;
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct HashTuple {
+    pub zero: [u8; 32],
+    pub one: [u8; 32],
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct PreimageTuple {
+    pub zero: [u8; 32],
+    pub one: [u8; 32],
+}
+
+
 
 #[derive(Clone)]
 pub struct Wire {
-    pub preimages: Option<[[u8; 32]; 2]>,
-    pub hashes: [[u8; 32]; 2],
+    pub preimages: Option<PreimageTuple>,
+    pub hashes: HashTuple,
     pub selector: Option<bool>,
     pub index: Option<usize>,
 }
@@ -40,8 +56,8 @@ impl Wire {
         let hash2 = sha256::Hash::hash(&preimage2).to_byte_array();
 
         Wire {
-            preimages: Some([preimage1, preimage2]),
-            hashes: [hash1, hash2],
+            preimages: Some(PreimageTuple { zero: preimage1, one: preimage2 }),
+            hashes: HashTuple { zero: hash1, one: hash2 },
             selector: None,
             index: Some(index),
         }
@@ -49,17 +65,17 @@ impl Wire {
 }
 
 impl WireTrait for Wire {
-    fn get_hash_pair(&self) -> [[u8; 32]; 2] {
+    fn get_hash_pair(&self) -> HashTuple {
         self.hashes
     }
 
     fn generate_anti_contradiction_script(&self, verifier_pk: XOnlyPublicKey) -> ScriptBuf {
         Builder::new()
             .push_opcode(OP_SHA256)
-            .push_slice(self.hashes[0])
+            .push_slice(self.hashes.zero)
             .push_opcode(OP_EQUALVERIFY)
             .push_opcode(OP_SHA256)
-            .push_slice(self.hashes[1])
+            .push_slice(self.hashes.one)
             .push_opcode(OP_EQUALVERIFY)
             .push_x_only_key(&verifier_pk)
             .push_opcode(OP_CHECKSIG)
@@ -70,11 +86,11 @@ impl WireTrait for Wire {
         builder
             .push_opcode(OP_SHA256)
             .push_opcode(OP_DUP)
-            .push_slice(self.hashes[1])
+            .push_slice(self.hashes.one)
             .push_opcode(OP_EQUAL)
             .push_opcode(OP_DUP)
             .push_opcode(OP_ROT)
-            .push_slice(self.hashes[0])
+            .push_slice(self.hashes.zero)
             .push_opcode(OP_EQUAL)
             .push_opcode(OP_BOOLOR)
             .push_opcode(OP_VERIFY)
@@ -107,7 +123,7 @@ mod tests {
         let script = wire.generate_anti_contradiction_script(verifier_pk);
 
         let preimages_vec = if let Some(preimages) = wire.preimages {
-            vec![preimages[1].to_vec(), preimages[0].to_vec()]
+            vec![preimages.one.to_vec(), preimages.zero.to_vec()]
         } else {
             panic!("wire preimages are None")
         };

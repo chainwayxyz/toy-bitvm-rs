@@ -171,8 +171,8 @@ fn main() {
 
     let witness = sighash_cache.witness_mut(0).unwrap();
     witness.push(sig.as_ref());
-    witness.push(wire.preimages.unwrap()[1]);
-    witness.push(wire.preimages.unwrap()[0]);
+    witness.push(wire.preimages.unwrap().one);
+    witness.push(wire.preimages.unwrap().zero);
     witness.push(script);
     witness.push(&control_block.serialize());
 
