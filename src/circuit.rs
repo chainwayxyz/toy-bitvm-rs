@@ -10,6 +10,7 @@ use bitcoin::{Address, ScriptBuf};
 
 use crate::actor::Actor;
 use crate::utils::taproot_address_from_script_leaves;
+use crate::wire::HashTuple;
 use crate::{
     gates::{AndGate, NotGate, XorGate},
     traits::{circuit::CircuitTrait, gate::GateTrait, wire::WireTrait},
@@ -82,14 +83,14 @@ impl CircuitTrait for Circuit {
         output
     }
 
-    fn get_wire_hashes(&self) -> Vec<[[u8; 32]; 2]> {
+    fn get_wire_hashes(&self) -> Vec<HashTuple> {
         self.wires
             .iter()
             .map(|wire_rcref| {
                 let wire = wire_rcref.try_borrow_mut().unwrap();
                 wire.get_hash_pair()
             })
-            .collect::<Vec<[[u8; 32]; 2]>>()
+            .collect::<Vec<HashTuple>>()
     }
 
     fn from_bristol(file: &str) -> Self {
