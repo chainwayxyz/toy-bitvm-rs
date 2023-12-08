@@ -82,6 +82,16 @@ impl CircuitTrait for Circuit {
         output
     }
 
+    fn get_wire_hashes(&self) -> Vec<[[u8; 32]; 2]> {
+        self.wires
+            .iter()
+            .map(|wire_rcref| {
+                let wire = wire_rcref.try_borrow_mut().unwrap();
+                wire.get_hash_pair()
+            })
+            .collect::<Vec<[[u8; 32]; 2]>>()
+    }
+
     fn from_bristol(file: &str) -> Self {
         let mut nog: usize = 0; // number of gates
         let mut now: usize = 0; // number of wires

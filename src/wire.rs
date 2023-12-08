@@ -49,6 +49,10 @@ impl Wire {
 }
 
 impl WireTrait for Wire {
+    fn get_hash_pair(&self) -> [[u8; 32]; 2] {
+        self.hashes
+    }
+
     fn generate_anti_contradiction_script(&self, verifier_pk: XOnlyPublicKey) -> ScriptBuf {
         Builder::new()
             .push_opcode(OP_SHA256)
