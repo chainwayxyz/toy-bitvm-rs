@@ -1,11 +1,6 @@
 use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
-use std::str::FromStr;
-
-use bitcoin::secp256k1::{All, Secp256k1};
-use bitcoin::taproot::{TaprootBuilder, TaprootSpendInfo};
-use bitcoin::{Address, ScriptBuf, XOnlyPublicKey};
 
 pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
@@ -72,30 +67,4 @@ pub fn bool_array_to_hex_string(bool_array: Vec<bool>) -> String {
         v.push(a[u]);
     }
     v.into_iter().collect::<String>()
-}
-
-pub fn taproot_address_from_script_leaves(
-    secp: &Secp256k1<All>,
-    scripts: Vec<ScriptBuf>,
-) -> (Address, TaprootSpendInfo) {
-    let n = scripts.len();
-    assert!(n > 1, "more than one script is required");
-    let m: u8 = ((n - 1).ilog2() + 1) as u8; // m = ceil(log(n))
-    let k = 2_usize.pow(m.into()) - n;
-    let taproot = (0..n).fold(TaprootBuilder::new(), |acc, i| {
-        acc.add_leaf(m - ((i >= n - k) as u8), scripts[i].clone())
-            .unwrap()
-    });
-    let internal_key = XOnlyPublicKey::from_str(
-        "93c7378d96518a75448821c4f7c8f4bae7ce60f804d03d1f0628dd5dd0f5de51",
-    )
-    .unwrap();
-    let tree_info = taproot.finalize(secp, internal_key).unwrap();
-    let address = Address::p2tr(
-        secp,
-        internal_key,
-        tree_info.merkle_root(),
-        bitcoin::Network::Regtest,
-    );
-    (address, tree_info)
 }

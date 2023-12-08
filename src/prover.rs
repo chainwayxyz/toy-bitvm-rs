@@ -4,7 +4,6 @@ use bitcoin::XOnlyPublicKey;
 use bitvm::{
     circuit::Circuit,
     communication::{receive_message, send_message},
-    traits::circuit::CircuitTrait,
     wire::HashTuple,
 };
 

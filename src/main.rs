@@ -9,9 +9,11 @@ use bitcoin::{Amount, OutPoint, ScriptBuf, TapLeafHash, Transaction, TxIn, TxOut
 
 use bitcoincore_rpc::{Auth, Client, RpcApi};
 use bitvm::actor::Actor;
-use bitvm::traits::wire::WireTrait;
 
-use bitvm::{circuit::Circuit, traits::circuit::CircuitTrait};
+use bitvm::circuit::Circuit;
+use bitvm::transactions::{
+    generate_anti_contradiction_script, generate_challenge_address_and_info,
+};
 
 use std::borrow::BorrowMut;
 
@@ -71,8 +73,13 @@ fn main() {
 
     let challenge_hashes = vicky.generate_challenge_hashes(circuit.num_gates());
 
-    let (address, kickoff_taproot_info) =
-        circuit.generate_challenge_tree(&secp, &paul, &vicky, challenge_hashes);
+    let (address, kickoff_taproot_info) = generate_challenge_address_and_info(
+        &secp,
+        &circuit,
+        paul.public_key,
+        vicky.public_key,
+        challenge_hashes,
+    );
 
     let mut tx = Transaction {
         version: bitcoin::transaction::Version::TWO,
@@ -128,7 +135,7 @@ fn main() {
 
     let vout: u32 = 0;
 
-    let script = wire.generate_anti_contradiction_script(vicky.public_key);
+    let script = generate_anti_contradiction_script(wire.get_hash_pair(), vicky.public_key);
 
     let mut tx = Transaction {
         version: bitcoin::transaction::Version::TWO,
