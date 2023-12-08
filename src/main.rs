@@ -157,13 +157,12 @@ fn main() {
 
     let sig_hash = sighash_cache
         .taproot_script_spend_signature_hash(
-            0,
+            vout as usize,
             &bitcoin::sighash::Prevouts::All(&prevouts),
             TapLeafHash::from_script(&script, LeafVersion::TapScript),
             bitcoin::sighash::TapSighashType::Default,
         )
         .unwrap();
-
     let sig = vicky.sign(sig_hash);
 
     let control_block = kickoff_taproot_info
