@@ -1,5 +1,6 @@
 use bitcoin::opcodes::all::{
-    OP_AND, OP_EQUALVERIFY, OP_FROMALTSTACK, OP_NOT, OP_SHA256, OP_TOALTSTACK, OP_XOR,
+    OP_BOOLAND, OP_EQUALVERIFY, OP_FROMALTSTACK, OP_NOT, OP_NUMEQUAL, OP_SHA256,
+    OP_TOALTSTACK,
 };
 use bitcoin::script::Builder;
 use bitcoin::ScriptBuf;
@@ -104,13 +105,13 @@ impl GateTrait for AndGate {
         )
         .push_opcode(OP_TOALTSTACK);
         let builder =
-            add_bit_commitment_script(self.input_wires[0].lock().unwrap().get_hash_pair(), builder)
+            add_bit_commitment_script(self.input_wires[1].lock().unwrap().get_hash_pair(), builder)
                 .push_opcode(OP_TOALTSTACK);
         let builder =
             add_bit_commitment_script(self.input_wires[0].lock().unwrap().get_hash_pair(), builder);
         builder
             .push_opcode(OP_FROMALTSTACK)
-            .push_opcode(OP_AND)
+            .push_opcode(OP_BOOLAND)
             .push_opcode(OP_FROMALTSTACK)
             .push_opcode(OP_EQUALVERIFY)
             .into_script()
@@ -166,13 +167,14 @@ impl GateTrait for XorGate {
         )
         .push_opcode(OP_TOALTSTACK);
         let builder =
-            add_bit_commitment_script(self.input_wires[0].lock().unwrap().get_hash_pair(), builder)
+            add_bit_commitment_script(self.input_wires[1].lock().unwrap().get_hash_pair(), builder)
                 .push_opcode(OP_TOALTSTACK);
         let builder =
             add_bit_commitment_script(self.input_wires[0].lock().unwrap().get_hash_pair(), builder);
         builder
             .push_opcode(OP_FROMALTSTACK)
-            .push_opcode(OP_XOR)
+            .push_opcode(OP_NUMEQUAL)
+            .push_opcode(OP_NOT)
             .push_opcode(OP_FROMALTSTACK)
             .push_opcode(OP_EQUALVERIFY)
             .into_script()
@@ -265,13 +267,13 @@ mod tests {
 
     fn test_gate(gate_name: &str) {
         let wire_0 = Wire::new(0);
-        let wire_0_preimages = wire_0.preimages.unwrap();
+        // let wire_0_preimages = wire_0.preimages.unwrap();
 
         let wire_1 = Wire::new(1);
-        let wire_1_preimages = wire_1.preimages.unwrap();
+        // let wire_1_preimages = wire_1.preimages.unwrap();
 
         let wire_2 = Wire::new(2);
-        let wire_2_preimages = wire_2.preimages.unwrap();
+        // let wire_2_preimages = wire_2.preimages.unwrap();
 
         let input_wires = vec![
             Arc::new(Mutex::new(wire_0.clone())),
@@ -305,15 +307,12 @@ mod tests {
         let mut output_wire_preimages = vec![];
 
         for i in 0..input_size {
-            let mut guard = input_wires[i].clone().lock().expect("Failed to lock mutex");
+            let guard = &input_wires[i].lock().expect("Failed to lock mutex");
             input_wire_preimages.push(guard.preimages.unwrap());
         }
 
         for i in 0..output_size {
-            let mut guard = output_wires[i]
-                .clone()
-                .lock()
-                .expect("Failed to lock mutex");
+            let guard = &output_wires[i].lock().expect("Failed to lock mutex");
             output_wire_preimages.push(guard.preimages.unwrap());
         }
 
@@ -396,6 +395,21 @@ mod tests {
                 println!("has_error: {}", has_error);
             }
         }
+    }
+
+    #[test]
+    fn test_not_gate2() {
+        test_gate("NotGate");
+    }
+
+    #[test]
+    fn test_xor_gate() {
+        test_gate("XorGate");
+    }
+
+    #[test]
+    fn test_and_gate() {
+        test_gate("AndGate");
     }
 
     #[test]
