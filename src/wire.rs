@@ -65,8 +65,33 @@ impl Wire {
         }
     }
 
+    pub fn new_with_hash_pair(index: usize, hash_pair: HashTuple) -> Self {
+        Wire {
+            preimages: None,
+            hashes: hash_pair,
+            selector: None,
+            index: Some(index),
+        }
+    }
+
     pub fn get_hash_pair(&self) -> HashTuple {
         self.hashes
+    }
+
+    pub fn get_preimage_of_selector(&self) -> [u8; 32] {
+        match self.preimages {
+            Some(preimage_tuple) => match self.selector {
+                Some(b) => {
+                    if !b {
+                        preimage_tuple.zero
+                    } else {
+                        preimage_tuple.one
+                    }
+                }
+                None => panic!("selector is not set"),
+            },
+            None => panic!("preimages are not set"),
+        }
     }
 }
 

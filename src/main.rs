@@ -37,7 +37,7 @@ fn main() {
     )
     .unwrap_or_else(|e| panic!("Failed to connect to Bitcoin RPC: {}", e));
 
-    let circuit = Circuit::from_bristol("bristol/add.txt");
+    let circuit = Circuit::from_bristol("bristol/add.txt", None);
 
     let paul = Actor::new();
     let mut vicky = Actor::new();
@@ -78,7 +78,7 @@ fn main() {
         &circuit,
         paul.public_key,
         vicky.public_key,
-        challenge_hashes,
+        &challenge_hashes,
     );
 
     let mut tx = Transaction {
@@ -131,7 +131,7 @@ fn main() {
     // tx.consensus_encode().unwrap();
 
     let wire_rcref = &circuit.wires[0];
-    let wire = wire_rcref.try_borrow_mut().unwrap();
+    let wire = wire_rcref.lock().unwrap();
 
     let vout: u32 = 0;
 

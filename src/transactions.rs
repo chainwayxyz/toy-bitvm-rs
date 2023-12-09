@@ -1,12 +1,16 @@
+use std::error::Error;
 use std::str::FromStr;
+use std::{thread, time};
 
 use bitcoin::secp256k1::{All, Secp256k1};
 use bitcoin::taproot::{TaprootBuilder, TaprootSpendInfo};
-use bitcoin::{Address, ScriptBuf, XOnlyPublicKey};
+use bitcoin::{Address, ScriptBuf, Transaction, Txid, XOnlyPublicKey};
 
 use bitcoin::blockdata::script::Builder;
 use bitcoin::opcodes::all::*;
+use bitcoincore_rpc::{Client, RpcApi};
 
+use crate::traits::gate::GateTrait;
 use crate::wire::{HashTuple, HashValue};
 
 use crate::circuit::Circuit;
@@ -40,21 +44,72 @@ pub fn taproot_address_from_script_leaves(
 pub fn generate_response_address_and_info(
     secp: &Secp256k1<All>,
     circuit: &Circuit,
-    verifier_pk: XOnlyPublicKey,
-    challenge_hashes: Vec<HashValue>,
+    prover_pk: XOnlyPublicKey,
+    challenge_hashes: &Vec<HashValue>,
 ) -> (Address, TaprootSpendInfo) {
     assert_eq!(
         challenge_hashes.len(),
         circuit.gates.len(),
         "wrong number of challenge hashes"
     );
-    let mut scripts = circuit
+    let scripts = circuit
         .gates
         .iter()
         .zip(challenge_hashes.iter())
-        .map(|(gate, hash)| gate.create_response_script(*hash))
+        .map(|(gate, hash)| generate_gate_response_script(gate, hash, prover_pk))
         .collect::<Vec<ScriptBuf>>();
-    scripts.push(generate_timelock_script(verifier_pk, 10));
+    taproot_address_from_script_leaves(secp, scripts)
+}
+
+#[allow(clippy::borrowed_box)]
+pub fn generate_gate_response_script(
+    gate: &Box<dyn GateTrait + std::marker::Send>,
+    challenge_hash: &HashValue,
+    prover_pk: XOnlyPublicKey,
+) -> ScriptBuf {
+    Builder::from(
+        gate.create_response_script(*challenge_hash)
+            .as_bytes()
+            .to_vec(),
+    )
+    .push_x_only_key(&prover_pk)
+    .push_opcode(OP_CHECKSIG)
+    .into_script()
+}
+
+pub fn generate_response_second_address_and_info(
+    secp: &Secp256k1<All>,
+    prover_pk: XOnlyPublicKey,
+    verifier_pk: XOnlyPublicKey,
+) -> (Address, TaprootSpendInfo) {
+    taproot_address_from_script_leaves(
+        secp,
+        vec![
+            generate_timelock_script(verifier_pk, 10),
+            generate_2_of_2_script(prover_pk, verifier_pk),
+        ],
+    )
+}
+
+pub fn generate_equivoation_address_and_info(
+    secp: &Secp256k1<All>,
+    circuit: &Circuit,
+    prover_pk: XOnlyPublicKey,
+    verifier_pk: XOnlyPublicKey,
+) -> (Address, TaprootSpendInfo) {
+    // let mut reveal_challenge_scripts =
+    let mut scripts = circuit
+        .wires
+        .iter()
+        .map(|wire_rcref| {
+            generate_anti_contradiction_script(
+                wire_rcref.lock().unwrap().get_hash_pair(),
+                verifier_pk,
+            )
+        })
+        .collect::<Vec<ScriptBuf>>();
+    scripts.push(generate_timelock_script(prover_pk, 10));
+    scripts.push(generate_2_of_2_script(prover_pk, verifier_pk));
     taproot_address_from_script_leaves(secp, scripts)
 }
 
@@ -63,25 +118,17 @@ pub fn generate_challenge_address_and_info(
     circuit: &Circuit,
     prover_pk: XOnlyPublicKey,
     verifier_pk: XOnlyPublicKey,
-    challenge_hashes: Vec<HashValue>,
+    challenge_hashes: &Vec<HashValue>,
 ) -> (Address, TaprootSpendInfo) {
     assert_eq!(
         challenge_hashes.len(),
         circuit.gates.len(),
         "wrong number of challenge hashes"
     );
-    let mut scripts = challenge_hashes
+    let scripts = challenge_hashes
         .iter()
         .map(|x| generate_challenge_script(prover_pk, verifier_pk, x))
         .collect::<Vec<ScriptBuf>>();
-    // let mut reveal_challenge_scripts =
-    scripts.extend(circuit.wires.iter().map(|wire_rcref| {
-        generate_anti_contradiction_script(
-            wire_rcref.try_borrow_mut().unwrap().get_hash_pair(),
-            verifier_pk,
-        )
-    }));
-    scripts.push(generate_timelock_script(prover_pk, 10));
     taproot_address_from_script_leaves(secp, scripts)
 }
 
@@ -116,13 +163,21 @@ pub fn add_bit_commitment_script(wire_bit_hashes: HashTuple, builder: Builder) -
 }
 
 pub fn generate_challenge_script(
-    prover_pk: XOnlyPublicKey,
+    _prover_pk: XOnlyPublicKey,
     verifier_pk: XOnlyPublicKey,
     challenge_hash: &HashValue,
 ) -> ScriptBuf {
     Builder::new()
+        .push_opcode(OP_SHA256)
         .push_slice(challenge_hash)
         .push_opcode(OP_EQUALVERIFY)
+        .push_x_only_key(&verifier_pk)
+        .push_opcode(OP_CHECKSIG)
+        .into_script()
+}
+
+pub fn generate_2_of_2_script(prover_pk: XOnlyPublicKey, verifier_pk: XOnlyPublicKey) -> ScriptBuf {
+    Builder::new()
         .push_x_only_key(&prover_pk)
         .push_opcode(OP_CHECKSIGVERIFY)
         .push_x_only_key(&verifier_pk)
@@ -137,4 +192,20 @@ pub fn generate_timelock_script(actor_pk: XOnlyPublicKey, block_count: u32) -> S
         .push_x_only_key(&actor_pk)
         .push_opcode(OP_CHECKSIG)
         .into_script()
+}
+
+pub fn watch_transaction(
+    rpc: &Client,
+    txid: &Txid,
+    interval: time::Duration,
+) -> Result<Transaction, Box<dyn Error>> {
+    loop {
+        match rpc.get_raw_transaction(txid, None) {
+            Ok(tx) => return Ok(tx),
+            Err(_e) => {
+                // println!("Transaction {:?} not found yet: {}", txid, e);
+                thread::sleep(interval);
+            }
+        }
+    }
 }

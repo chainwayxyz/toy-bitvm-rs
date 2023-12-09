@@ -9,15 +9,15 @@ where
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
 }
-
-pub fn take_stdin(prompt: &str) -> String {
+pub fn take_stdin<T: std::str::FromStr>(prompt: &str) -> Result<T, T::Err> {
     print!("{}", prompt);
-    let mut string = String::new();
     io::stdout().flush().unwrap();
+    let mut string = String::new();
     io::stdin()
         .read_line(&mut string)
-        .expect("Failed to read txid");
-    string.trim().to_string()
+        .expect("Failed to read line");
+
+    string.trim().parse::<T>()
 }
 
 pub fn number_to_bool_array(number: usize, length: usize) -> Vec<bool> {
