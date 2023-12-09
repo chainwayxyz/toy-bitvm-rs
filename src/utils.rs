@@ -16,7 +16,7 @@ pub fn take_stdin<T: std::str::FromStr>(prompt: &str) -> Result<T, T::Err> {
     io::stdin()
         .read_line(&mut string)
         .expect("Failed to read line");
-    
+
     string.trim().parse::<T>()
 }
 

@@ -291,6 +291,4 @@ async fn main() {
         .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
     println!("initial kickoff txid = {:?}", kickoff_txid);
     send_message(&mut ws_stream, &kickoff_txid).await.unwrap();
-
-    
 }
