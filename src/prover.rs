@@ -1,7 +1,7 @@
 use std::borrow::BorrowMut;
 
 use bitcoin::absolute::{Height, LockTime};
-use bitcoin::consensus::encode::serialize_hex;
+
 use bitcoin::hashes::Hash;
 use bitcoin::secp256k1::schnorr::Signature;
 use bitcoin::secp256k1::Message;
@@ -289,7 +289,5 @@ async fn main() {
         .send_raw_transaction(&kickoff_tx)
         .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
     println!("initial kickoff txid = {:?}", kickoff_txid);
-    send_message(&mut ws_stream, &kickoff_txid)
-        .await
-        .unwrap();
+    send_message(&mut ws_stream, &kickoff_txid).await.unwrap();
 }
