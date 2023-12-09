@@ -440,11 +440,12 @@ async fn handle_connection(stream: TcpStream) {
         witness1.push(musig_2of2_script);
         witness1.push(&musig_control_block.serialize());
 
-        let _response_txid = rpc
+        let response_txid = rpc
             .send_raw_transaction(&response_tx)
             .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
 
         println!("CHALLENGE SENTTTTTTT");
+        println!("txid : {:?}", response_txid);
 
         last_output = outputs2;
         last_txid = response_tx.txid();

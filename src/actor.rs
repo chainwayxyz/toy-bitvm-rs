@@ -18,6 +18,7 @@ pub struct Actor {
     pub public_key: XOnlyPublicKey,
     pub address: Address,
     challenge_preimages: Vec<Vec<PreimageValue>>,
+    challenge_hashes: Vec<Vec<HashValue>>,
     signatures: Vec<Signature>,
 }
 
@@ -43,6 +44,7 @@ impl Actor {
             public_key: xonly,
             address,
             challenge_preimages: Vec::new(),
+            challenge_hashes: Vec::new(),
             signatures: Vec::new(),
         }
     }
@@ -83,14 +85,16 @@ impl Actor {
             challenge_hashes.push(sha256::Hash::hash(&preimage).to_byte_array());
         }
         self.challenge_preimages.push(preimages);
+        self.challenge_hashes.push(challenge_hashes.clone());
         challenge_hashes
     }
 
+    pub fn add_challenge_hashes(&mut self, challenge_hashes: Vec<HashValue>) {
+        self.challenge_hashes.push(challenge_hashes);
+    }
+
     pub fn get_challenge_hashes(&self, index: usize) -> Vec<HashValue> {
-        self.challenge_preimages[index]
-            .iter()
-            .map(|preimage| sha256::Hash::hash(preimage).to_byte_array())
-            .collect::<Vec<HashValue>>()
+        self.challenge_hashes[index].clone()
     }
 
     pub fn get_challenge_preimage(&self, index: usize, gate_num: usize) -> PreimageValue {
