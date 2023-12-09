@@ -6,7 +6,10 @@ use bitcoin::ScriptBuf;
 
 use crate::transactions::add_bit_commitment_script;
 use crate::wire::HashValue;
-use crate::{traits::gate::GateTrait, wire::Wire};
+use crate::{
+    traits::gate::{GateTrait, Wires},
+    wire::Wire,
+};
 
 use std::sync::{Arc, Mutex};
 
@@ -27,12 +30,20 @@ impl NotGate {
 }
 
 impl GateTrait for NotGate {
-    fn evaluate(&mut self) {
-        let in1 = &mut self.input_wires[0].lock().unwrap();
-        let out = &mut self.output_wires[0].lock().unwrap();
-        let u = in1.selector.as_mut().unwrap();
-        let w = !*u;
-        out.selector = Some(w);
+    fn get_input_size(&self) -> usize {
+        1
+    }
+
+    fn get_output_size(&self) -> usize {
+        1
+    }
+
+    fn get_input_wires(&mut self) -> &mut Wires {
+        &mut self.input_wires
+    }
+
+    fn get_output_wires(&mut self) -> &mut Wires {
+        &mut self.output_wires
     }
 
     fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
@@ -52,14 +63,6 @@ impl GateTrait for NotGate {
             .push_opcode(OP_FROMALTSTACK)
             .push_opcode(OP_EQUALVERIFY)
             .into_script()
-    }
-
-    fn get_input_size(&self) -> usize {
-        1
-    }
-
-    fn get_output_size(&self) -> usize {
-        1
     }
 
     fn run_gate_on_inputs(&self, inputs: Vec<bool>) -> Vec<bool> {
@@ -83,14 +86,20 @@ impl AndGate {
 }
 
 impl GateTrait for AndGate {
-    fn evaluate(&mut self) {
-        let in1 = &mut self.input_wires[0].lock().unwrap();
-        let in2 = &mut self.input_wires[1].lock().unwrap();
-        let out = &mut self.output_wires[0].lock().unwrap();
-        let u = in1.selector.as_mut().unwrap();
-        let v = in2.selector.as_mut().unwrap();
-        let w = *u && *v;
-        out.selector = Some(w);
+    fn get_input_size(&self) -> usize {
+        2
+    }
+
+    fn get_output_size(&self) -> usize {
+        1
+    }
+
+    fn get_input_wires(&mut self) -> &mut Wires {
+        &mut self.input_wires
+    }
+
+    fn get_output_wires(&mut self) -> &mut Wires {
+        &mut self.output_wires
     }
 
     fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
@@ -116,14 +125,6 @@ impl GateTrait for AndGate {
             .into_script()
     }
 
-    fn get_input_size(&self) -> usize {
-        2
-    }
-
-    fn get_output_size(&self) -> usize {
-        1
-    }
-
     fn run_gate_on_inputs(&self, inputs: Vec<bool>) -> Vec<bool> {
         assert!(inputs.len() == 2);
         vec![inputs[0] && inputs[1]]
@@ -145,14 +146,20 @@ impl XorGate {
 }
 
 impl GateTrait for XorGate {
-    fn evaluate(&mut self) {
-        let in1 = &mut self.input_wires[0].lock().unwrap();
-        let in2 = &mut self.input_wires[1].lock().unwrap();
-        let out = &mut self.output_wires[0].lock().unwrap();
-        let u = in1.selector.as_mut().unwrap();
-        let v = in2.selector.as_mut().unwrap();
-        let w = *u ^ *v;
-        out.selector = Some(w);
+    fn get_input_size(&self) -> usize {
+        2
+    }
+
+    fn get_output_size(&self) -> usize {
+        1
+    }
+
+    fn get_input_wires(&mut self) -> &mut Wires {
+        &mut self.input_wires
+    }
+
+    fn get_output_wires(&mut self) -> &mut Wires {
+        &mut self.output_wires
     }
 
     fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
@@ -177,14 +184,6 @@ impl GateTrait for XorGate {
             .push_opcode(OP_FROMALTSTACK)
             .push_opcode(OP_EQUALVERIFY)
             .into_script()
-    }
-
-    fn get_input_size(&self) -> usize {
-        2
-    }
-
-    fn get_output_size(&self) -> usize {
-        1
     }
 
     fn run_gate_on_inputs(&self, inputs: Vec<bool>) -> Vec<bool> {
