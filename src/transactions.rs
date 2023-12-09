@@ -10,6 +10,7 @@ use bitcoin::blockdata::script::Builder;
 use bitcoin::opcodes::all::*;
 use bitcoincore_rpc::{Client, RpcApi};
 
+use crate::traits::gate::GateTrait;
 use crate::wire::{HashTuple, HashValue};
 
 use crate::circuit::Circuit;
@@ -43,6 +44,7 @@ pub fn taproot_address_from_script_leaves(
 pub fn generate_response_address_and_info(
     secp: &Secp256k1<All>,
     circuit: &Circuit,
+    prover_pk: XOnlyPublicKey,
     challenge_hashes: &Vec<HashValue>,
 ) -> (Address, TaprootSpendInfo) {
     assert_eq!(
@@ -54,9 +56,25 @@ pub fn generate_response_address_and_info(
         .gates
         .iter()
         .zip(challenge_hashes.iter())
-        .map(|(gate, hash)| gate.create_response_script(*hash))
+        .map(|(gate, hash)| generate_gate_response_script(gate, hash, prover_pk))
         .collect::<Vec<ScriptBuf>>();
     taproot_address_from_script_leaves(secp, scripts)
+}
+
+#[allow(clippy::borrowed_box)]
+pub fn generate_gate_response_script(
+    gate: &Box<dyn GateTrait + std::marker::Send>,
+    challenge_hash: &HashValue,
+    prover_pk: XOnlyPublicKey,
+) -> ScriptBuf {
+    Builder::from(
+        gate.create_response_script(*challenge_hash)
+            .as_bytes()
+            .to_vec(),
+    )
+    .push_x_only_key(&prover_pk)
+    .push_opcode(OP_CHECKSIG)
+    .into_script()
 }
 
 pub fn generate_response_second_address_and_info(

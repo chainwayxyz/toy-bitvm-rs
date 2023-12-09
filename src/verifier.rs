@@ -114,8 +114,12 @@ async fn handle_connection(stream: TcpStream) {
             &challenge_hashes,
         );
 
-        let (response_address, _) =
-            generate_response_address_and_info(&secp, &circuit, &challenge_hashes);
+        let (response_address, _) = generate_response_address_and_info(
+            &secp,
+            &circuit,
+            prover_public_key,
+            &challenge_hashes,
+        );
 
         let outputs1 = vec![
             TxOut {
@@ -271,8 +275,12 @@ async fn handle_connection(stream: TcpStream) {
             &challenge_hashes,
         );
 
-        let (response_address, _) =
-            generate_response_address_and_info(&secp, &circuit, &challenge_hashes);
+        let (response_address, _) = generate_response_address_and_info(
+            &secp,
+            &circuit,
+            prover_public_key,
+            &challenge_hashes,
+        );
 
         let outputs1 = vec![
             TxOut {

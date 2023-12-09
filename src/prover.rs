@@ -13,10 +13,11 @@ use bitcoin::{OutPoint, ScriptBuf, TapLeafHash, TxIn, TxOut, Witness};
 
 use bitcoincore_rpc::{Auth, Client, RpcApi};
 use bitvm::transactions::{
-    generate_2_of_2_script, generate_equivoation_address_and_info,
+    generate_2_of_2_script, generate_equivoation_address_and_info, generate_gate_response_script,
     generate_response_second_address_and_info, watch_transaction,
 };
 
+use bitvm::utils::number_to_bool_array;
 use bitvm::wire::PreimageValue;
 // prover.rs
 use bitvm::{
@@ -51,7 +52,7 @@ async fn main() {
 
     // NOW PUBLIC KEY EXCHANGE IS COMPLETE
 
-    let circuit = Circuit::from_bristol("bristol/add.txt", None);
+    let mut circuit = Circuit::from_bristol("bristol/add.txt", None);
     let secp = Secp256k1::new();
     let wire_hashes: Vec<HashTuple> = circuit.get_wire_hashes();
 
@@ -66,7 +67,7 @@ async fn main() {
         verifier_public_key,
     );
 
-    let (response_second_address, _) =
+    let (response_second_address, response_second_taproot_info) =
         generate_response_second_address_and_info(&secp, prover_public_key, verifier_public_key);
 
     let rpc = Client::new(
@@ -124,8 +125,12 @@ async fn main() {
             &challenge_hashes,
         );
 
-        let (response_address, _) =
-            generate_response_address_and_info(&secp, &circuit, &challenge_hashes);
+        let (response_address, _) = generate_response_address_and_info(
+            &secp,
+            &circuit,
+            prover_public_key,
+            &challenge_hashes,
+        );
 
         let outputs1 = vec![
             TxOut {
@@ -211,6 +216,7 @@ async fn main() {
                 &verifier_public_key,
             )
             .unwrap();
+            prover.add_signature(response_sig);
         } else {
             kickoff_tx = challenge_tx.clone();
         }
@@ -296,7 +302,15 @@ async fn main() {
     println!("initial kickoff txid = {:?}", kickoff_txid);
     send_message(&mut ws_stream, &kickoff_txid).await.unwrap();
 
+    let a1 = 633;
+    let a2 = 15;
+    let b1 = number_to_bool_array(a1, 64);
+    let b2 = number_to_bool_array(a2, 64);
+
+    let _o = circuit.evaluate(vec![b1, b2]);
+
     let mut challenge_preimage: PreimageValue = [0; 32];
+    let mut challenge_hash: HashValue = [0; 32];
     let mut challenge_gate_index: usize = 0;
     last_txid = initial_fund_txid;
     for i in 0..bisection_length as u64 {
@@ -310,8 +324,12 @@ async fn main() {
             &challenge_hashes,
         );
 
-        let (response_address, _) =
-            generate_response_address_and_info(&secp, &circuit, &challenge_hashes);
+        let (response_address, _response_taproot_info) = generate_response_address_and_info(
+            &secp,
+            &circuit,
+            prover_public_key,
+            &challenge_hashes,
+        );
 
         let outputs1 = vec![
             TxOut {
@@ -376,26 +394,75 @@ async fn main() {
         };
 
         if i != 0 {
-            // Verifier needs needs to give signature to prover so that prover can give a response
+            let challenge_hashes: Vec<HashValue> = prover.get_challenge_hashes(i as usize - 1);
+            let (_, response_taproot_info) = generate_response_address_and_info(
+                &secp,
+                &circuit,
+                prover_public_key,
+                &challenge_hashes,
+            );
+
+            // NOW WE GIVE THE RESPONSE
             let mut sighash_cache = SighashCache::new(challenge_tx.borrow_mut());
 
-            let _sig_hash = sighash_cache
+            let response_script = generate_gate_response_script(
+                &circuit.gates[challenge_gate_index],
+                &challenge_hash,
+                prover_public_key,
+            );
+            let musig_2of2_script = generate_2_of_2_script(prover_public_key, verifier_public_key);
+
+            let sig_hash = sighash_cache
                 .taproot_script_spend_signature_hash(
-                    1_usize,
+                    0,
                     &bitcoin::sighash::Prevouts::All(&last_output),
-                    TapLeafHash::from_script(
-                        &generate_2_of_2_script(prover_public_key, verifier_public_key),
-                        LeafVersion::TapScript,
-                    ),
+                    TapLeafHash::from_script(&response_script, LeafVersion::TapScript),
                     bitcoin::sighash::TapSighashType::Default,
                 )
                 .unwrap();
+            let prover_response_sig = prover.sign(sig_hash);
+
+            let sig_hash = sighash_cache
+                .taproot_script_spend_signature_hash(
+                    1,
+                    &bitcoin::sighash::Prevouts::All(&last_output),
+                    TapLeafHash::from_script(&musig_2of2_script, LeafVersion::TapScript),
+                    bitcoin::sighash::TapSighashType::Default,
+                )
+                .unwrap();
+            let provers_musig_signature = prover.sign(sig_hash);
+
+            let verifiers_musig_signature = prover.get_signature(i as usize - 1);
+            let response_control_block = response_taproot_info
+                .control_block(&(response_script.clone(), LeafVersion::TapScript))
+                .expect("Cannot create control block");
+
+            let musig_control_block = response_second_taproot_info
+                .control_block(&(musig_2of2_script.clone(), LeafVersion::TapScript))
+                .expect("Cannot create control block");
+
+            let witness0 = sighash_cache.witness_mut(0).unwrap();
+            witness0.push(prover_response_sig.as_ref());
+            // circuit.gates[challenge_gate_index].create_response_witness
+            witness0.push(challenge_preimage);
+            witness0.push(response_script);
+            witness0.push(&response_control_block.serialize());
+
+            let witness1 = sighash_cache.witness_mut(1).unwrap();
+            witness1.push(verifiers_musig_signature.as_ref());
+            witness1.push(provers_musig_signature.as_ref());
+            witness1.push(musig_2of2_script);
+            witness1.push(&musig_control_block.serialize());
+
+            let challenge_txid = rpc
+                .send_raw_transaction(&challenge_tx)
+                .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
+
+            println!("Our response to the challenge");
+            println!("txid : {:?}", challenge_txid);
+
             // let _sig = verifier.sign(sig_hash);
             println!("NOW WE GIVE THE RESPONSEEE");
-            println!(
-                "Challenge gate and preimage is: {:?}, {:?}",
-                challenge_gate_index, challenge_preimage
-            );
             return;
             // send_message(&mut ws_stream, &sig).await.unwrap();
         }
@@ -436,7 +503,7 @@ async fn main() {
             .try_into()
             .expect("Slice with incorrect length");
         challenge_preimage = preimage.to_owned();
-        let challenge_hash = sha256::Hash::hash(&challenge_preimage).to_byte_array();
+        challenge_hash = sha256::Hash::hash(&challenge_preimage).to_byte_array();
         // println!("Challenged preimage: {:?}", challenge_preimage);
         // println!("Challenged hash: {:?}", challenge_hash);
         // find the challenge hash in the challenge hashes
