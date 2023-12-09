@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use bitcoin::absolute::{Height, LockTime};
 
-use bitcoin::hashes::{Hash, sha256};
+use bitcoin::hashes::{sha256, Hash};
 use bitcoin::secp256k1::schnorr::Signature;
 use bitcoin::secp256k1::Message;
 use bitcoin::sighash::SighashCache;
@@ -16,7 +16,6 @@ use bitvm::transactions::{
     generate_2_of_2_script, generate_equivoation_address_and_info,
     generate_response_second_address_and_info, watch_transaction,
 };
-
 
 use bitvm::wire::PreimageValue;
 // prover.rs
@@ -297,7 +296,6 @@ async fn main() {
     println!("initial kickoff txid = {:?}", kickoff_txid);
     send_message(&mut ws_stream, &kickoff_txid).await.unwrap();
 
-
     let mut challenge_preimage: PreimageValue = [0; 32];
     let mut challenge_gate_index: usize = 0;
     last_txid = initial_fund_txid;
@@ -394,7 +392,10 @@ async fn main() {
                 .unwrap();
             // let _sig = verifier.sign(sig_hash);
             println!("NOW WE GIVE THE RESPONSEEE");
-            println!("Challenge gate and preimage is: {:?}, {:?}", challenge_gate_index, challenge_preimage);
+            println!(
+                "Challenge gate and preimage is: {:?}, {:?}",
+                challenge_gate_index, challenge_preimage
+            );
             return;
             // send_message(&mut ws_stream, &sig).await.unwrap();
         }
@@ -428,7 +429,12 @@ async fn main() {
         // println!("response txid: {:?}", response_tx.txid());
         // Prover waits for challenge
         let challenge_tx = watch_transaction(&rpc, &response_tx.txid(), watch_interval).unwrap();
-        let preimage: &[u8; 32] = challenge_tx.input[0].witness.nth(1).unwrap().try_into().expect("Slice with incorrect length");
+        let preimage: &[u8; 32] = challenge_tx.input[0]
+            .witness
+            .nth(1)
+            .unwrap()
+            .try_into()
+            .expect("Slice with incorrect length");
         challenge_preimage = preimage.to_owned();
         let challenge_hash = sha256::Hash::hash(&challenge_preimage).to_byte_array();
         // println!("Challenged preimage: {:?}", challenge_preimage);
@@ -442,7 +448,6 @@ async fn main() {
             }
         }
         challenge_gate_index = challenge_index;
-
 
         last_output = outputs2;
         last_txid = response_tx.txid();

@@ -1,15 +1,14 @@
 use std::error::Error;
 use std::str::FromStr;
-use std::{time, thread};
+use std::{thread, time};
 
 use bitcoin::secp256k1::{All, Secp256k1};
 use bitcoin::taproot::{TaprootBuilder, TaprootSpendInfo};
-use bitcoin::{Address, ScriptBuf, XOnlyPublicKey, Txid, Transaction};
+use bitcoin::{Address, ScriptBuf, Transaction, Txid, XOnlyPublicKey};
 
 use bitcoin::blockdata::script::Builder;
 use bitcoin::opcodes::all::*;
 use bitcoincore_rpc::{Client, RpcApi};
-
 
 use crate::wire::{HashTuple, HashValue};
 
@@ -177,14 +176,18 @@ pub fn generate_timelock_script(actor_pk: XOnlyPublicKey, block_count: u32) -> S
         .into_script()
 }
 
-pub fn watch_transaction(rpc: &Client, txid: &Txid, interval: time::Duration) -> Result<Transaction, Box<dyn Error>> {
+pub fn watch_transaction(
+    rpc: &Client,
+    txid: &Txid,
+    interval: time::Duration,
+) -> Result<Transaction, Box<dyn Error>> {
     loop {
         match rpc.get_raw_transaction(txid, None) {
             Ok(tx) => return Ok(tx),
             Err(e) => {
                 println!("Transaction {:?} not found yet: {}", txid, e);
                 thread::sleep(interval);
-            },
+            }
         }
     }
 }
