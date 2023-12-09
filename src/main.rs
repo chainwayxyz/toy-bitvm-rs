@@ -1,19 +1,6 @@
-
-
 use bitcoin::consensus::Decodable;
 
-
-
-
-use bitcoin::{Transaction};
-
-
-
-
-
-
-
-
+use bitcoin::Transaction;
 
 pub fn parse_hex_transaction(
     tx_hex: &str,
