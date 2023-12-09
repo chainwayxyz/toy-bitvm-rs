@@ -264,7 +264,6 @@ mod tests {
     }
 
     fn test_gate(gate_name: &str) {
-
         let wire_0 = Wire::new(0);
         let wire_0_preimages = wire_0.preimages.unwrap();
 
@@ -306,14 +305,16 @@ mod tests {
         let mut output_wire_preimages = vec![];
 
         for i in 0..input_size {
-           let mut guard = input_wires[i].clone().lock().expect("Failed to lock mutex");
-           input_wire_preimages.push(guard.preimages.unwrap());
+            let mut guard = input_wires[i].clone().lock().expect("Failed to lock mutex");
+            input_wire_preimages.push(guard.preimages.unwrap());
         }
 
         for i in 0..output_size {
-            let mut guard = output_wires[i].clone().lock().expect("Failed to lock mutex");
+            let mut guard = output_wires[i]
+                .clone()
+                .lock()
+                .expect("Failed to lock mutex");
             output_wire_preimages.push(guard.preimages.unwrap());
-
         }
 
         println!("input wire preimages: {:?}", input_wire_preimages);
@@ -344,15 +345,13 @@ mod tests {
             for i in 0..input_size {
                 if input_preimage_indices[i] == 1 {
                     assert!(input_wire_preimages[i].one.len() == 32);
-                    input_solution_preimages
-                        .push(input_wire_preimages[i].one.clone().to_vec());
+                    input_solution_preimages.push(input_wire_preimages[i].one.clone().to_vec());
                 } else {
                     assert!(input_wire_preimages[i].zero.len() == 32);
-                    input_solution_preimages
-                        .push(input_wire_preimages[i].zero.clone().to_vec());
+                    input_solution_preimages.push(input_wire_preimages[i].zero.clone().to_vec());
                 }
             }
-            
+
             //do this with for so that all possibilities are covered
             for output in all_possible_outputs.iter() {
                 let mut output_preimage_indices = vec![];
