@@ -52,5 +52,23 @@ pub trait GateTrait {
         witness
     }
 
+    fn add_preimages_from_witness(&mut self, witness: Vec<[u8; 32]>) -> Option<Wire> {
+        let input_preimages = witness[0..self.get_input_size()].to_vec();
+        let output_preimages = witness[self.get_input_size()..].to_vec();
+        for (wire_arcm, preimage) in zip(&mut self.get_input_wires().iter(), input_preimages) {
+            let found_contradiction = wire_arcm.lock().unwrap().add_preimage(preimage);
+            if found_contradiction.is_some() {
+                return found_contradiction;
+            }
+        }
+        for (wire_arcm, preimage) in zip(&mut self.get_output_wires().iter(), output_preimages) {
+            let found_contradiction = wire_arcm.lock().unwrap().add_preimage(preimage);
+            if found_contradiction.is_some() {
+                return found_contradiction;
+            }
+        }
+        None
+    }
+
     fn run_gate_on_inputs(&self, inputs: Vec<bool>) -> Vec<bool>;
 }

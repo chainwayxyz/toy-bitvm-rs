@@ -335,11 +335,13 @@ mod tests {
 
             for i in 0..input_size {
                 if input_preimage_indices[i] == 1 {
-                    assert!(input_wire_preimages[i].one.len() == 32);
-                    input_solution_preimages.push(input_wire_preimages[i].one.clone().to_vec());
+                    assert!(input_wire_preimages[i].one.unwrap().len() == 32);
+                    input_solution_preimages
+                        .push(input_wire_preimages[i].one.unwrap().clone().to_vec());
                 } else {
-                    assert!(input_wire_preimages[i].zero.len() == 32);
-                    input_solution_preimages.push(input_wire_preimages[i].zero.clone().to_vec());
+                    assert!(input_wire_preimages[i].zero.unwrap().len() == 32);
+                    input_solution_preimages
+                        .push(input_wire_preimages[i].zero.unwrap().clone().to_vec());
                 }
             }
 
@@ -354,13 +356,13 @@ mod tests {
 
                 for i in 0..output_size {
                     if output_preimage_indices[i] == 1 {
-                        assert!(output_wire_preimages[i].one.len() == 32);
+                        assert!(output_wire_preimages[i].one.unwrap().len() == 32);
                         output_solution_preimages
-                            .push(output_wire_preimages[i].one.clone().to_vec());
+                            .push(output_wire_preimages[i].one.unwrap().clone().to_vec());
                     } else {
-                        assert!(output_wire_preimages[i].zero.len() == 32);
+                        assert!(output_wire_preimages[i].zero.unwrap().len() == 32);
                         output_solution_preimages
-                            .push(output_wire_preimages[i].zero.clone().to_vec());
+                            .push(output_wire_preimages[i].zero.unwrap().clone().to_vec());
                     }
                 }
 
@@ -426,8 +428,8 @@ mod tests {
         let script = not_gate.create_response_script(lock_hash);
 
         let solution_01_preimages = vec![
-            input_wire_0_preimages.zero.clone().to_vec(),
-            output_wire_0_preimages.one.clone().to_vec(),
+            input_wire_0_preimages.zero.unwrap().clone().to_vec(),
+            output_wire_0_preimages.one.unwrap().clone().to_vec(),
             lock_preimage.to_vec(),
         ];
         let mut exec_01 = Exec::new(
@@ -462,8 +464,8 @@ mod tests {
         assert_eq!(res.error, None);
 
         let solution_01_preimages = vec![
-            input_wire_0_preimages.zero.clone().to_vec(),
-            output_wire_0_preimages.zero.clone().to_vec(),
+            input_wire_0_preimages.zero.unwrap().clone().to_vec(),
+            output_wire_0_preimages.zero.unwrap().clone().to_vec(),
             lock_preimage.to_vec(),
         ];
         let mut exec_00 = Exec::new(

@@ -200,7 +200,14 @@ pub fn watch_transaction(
     interval: time::Duration,
 ) -> Result<Transaction, Box<dyn Error>> {
     loop {
-        match rpc.get_raw_transaction(txid, None) {
+        // wait for block to be mined
+        match rpc.get_raw_transaction(
+            txid,
+            Some(
+                &rpc.get_block_hash(rpc.get_block_count().unwrap() - 1)
+                    .unwrap(),
+            ),
+        ) {
             Ok(tx) => return Ok(tx),
             Err(_e) => {
                 // println!("Transaction {:?} not found yet: {}", txid, e);

@@ -466,6 +466,13 @@ async fn main() {
 
             // let _sig = verifier.sign(sig_hash);
             println!("NOW WE GIVE THE RESPONSEEE");
+
+            let a1 = 32;
+            let a2 = 70;
+            let b1 = number_to_bool_array(a1, 64);
+            let b2 = number_to_bool_array(a2, 64);
+        
+            let _o = circuit.evaluate(vec![b1, b2]);
             // return;
             // send_message(&mut ws_stream, &sig).await.unwrap();
         }

@@ -11,10 +11,12 @@ use bitcoin::{secp256k1::Secp256k1, Transaction, Txid, XOnlyPublicKey};
 use bitcoin::{Amount, OutPoint, ScriptBuf, TapLeafHash, TxIn, TxOut, Witness};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
 use bitvm::transactions::{
-    generate_2_of_2_script, generate_challenge_script, generate_equivoation_address_and_info,
-    generate_response_second_address_and_info, watch_transaction,
+    generate_2_of_2_script, generate_anti_contradiction_script, generate_challenge_script,
+    generate_equivoation_address_and_info, generate_response_second_address_and_info,
+    watch_transaction,
 };
 use bitvm::utils::take_stdin;
+use bitvm::wire::{PreimageValue, Wire};
 // verifier.rs
 use bitvm::{
     actor::Actor,
@@ -59,7 +61,7 @@ async fn handle_connection(stream: TcpStream) {
 
     let wire_hashes: Vec<HashTuple> = receive_message(&mut ws_stream).await.unwrap();
 
-    let circuit = Circuit::from_bristol("bristol/add.txt", Some(wire_hashes));
+    let mut circuit = Circuit::from_bristol("bristol/add.txt", Some(wire_hashes));
     let secp = Secp256k1::new();
 
     let bisection_length = 10;
@@ -265,6 +267,7 @@ async fn handle_connection(stream: TcpStream) {
         panic!("Kickoff txid mismatch!");
     }
 
+    let mut challenge_gate_num: usize = 0;
     last_txid = initial_fund_txid;
     for i in 0..bisection_length as u64 {
         let challenge_hashes: Vec<HashValue> = verifier.get_challenge_hashes(i as usize);
@@ -346,11 +349,29 @@ async fn handle_connection(stream: TcpStream) {
             output: outputs1.clone(),
         };
 
+        let mut found_contradiction: Option<Wire> = None;
+
         if i != 0 {
             // Verifier needs needs to give signature to prover so that prover can give a response
             println!("Waiting for provers response");
-            let _provers_response =
+            let provers_response =
                 watch_transaction(&rpc, &challenge_tx.txid(), watch_interval).unwrap();
+            let num_wires = circuit.gates[challenge_gate_num].get_input_size()
+                + circuit.gates[challenge_gate_num].get_output_size();
+            let mut witness: Vec<PreimageValue> = Vec::new();
+            for i in 0..num_wires {
+                witness.push(
+                    provers_response.input[0]
+                        .witness
+                        .nth(i + 1)
+                        .unwrap()
+                        .try_into()
+                        .expect("Slice with incorrect length"),
+                );
+            }
+
+            found_contradiction =
+                circuit.gates[challenge_gate_num].add_preimages_from_witness(witness);
         }
 
         let mut response_tx = Transaction {
@@ -378,8 +399,75 @@ async fn handle_connection(stream: TcpStream) {
             ],
             output: outputs2.clone(),
         };
+        if found_contradiction.is_some() {
+            let mut steal_tx = Transaction {
+                version: bitcoin::transaction::Version::TWO,
+                lock_time: LockTime::from(Height::MIN),
+                input: vec![TxIn {
+                    previous_output: OutPoint {
+                        txid: challenge_tx.txid(),
+                        vout: 1,
+                    },
+                    script_sig: ScriptBuf::new(),
+                    sequence: bitcoin::transaction::Sequence::ENABLE_RBF_NO_LOCKTIME,
+                    witness: Witness::new(),
+                }],
+                output: vec![TxOut {
+                    script_pubkey: verifier.address.script_pubkey(),
+                    value: Amount::from_sat(amt - (2 * i + 2) * (fee + dust_limit)),
+                }],
+            };
+            println!("CONTRADICTION FOUND");
+            let mut sighash_cache = SighashCache::new(steal_tx.borrow_mut());
+
+            let equivocation_script = generate_anti_contradiction_script(
+                found_contradiction.clone().unwrap().get_hash_pair(),
+                verifier_public_key,
+            );
+            let sig_hash = sighash_cache
+                .taproot_script_spend_signature_hash(
+                    0,
+                    &bitcoin::sighash::Prevouts::All(&[outputs1[1].clone()]),
+                    TapLeafHash::from_script(&equivocation_script, LeafVersion::TapScript),
+                    bitcoin::sighash::TapSighashType::Default,
+                )
+                .unwrap();
+
+            let equivocation_sig = verifier.sign(sig_hash);
+
+            let equivocation_control_block = equivocation_taproot_info
+                .control_block(&(equivocation_script.clone(), LeafVersion::TapScript))
+                .expect("Cannot create control block");
+
+            let witness = sighash_cache.witness_mut(0).unwrap();
+            witness.push(equivocation_sig.as_ref());
+            witness.push(
+                found_contradiction
+                    .clone()
+                    .unwrap()
+                    .preimages
+                    .unwrap()
+                    .one
+                    .unwrap(),
+            );
+            witness.push(
+                found_contradiction
+                    .unwrap()
+                    .preimages
+                    .unwrap()
+                    .zero
+                    .unwrap(),
+            );
+            witness.push(equivocation_script);
+            witness.push(&equivocation_control_block.serialize());
+
+            let steal_txid = rpc
+                .send_raw_transaction(&steal_tx)
+                .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
+            println!("VERIFIER STOLE ALL THE MONEY: {:?}", steal_txid);
+        }
         // Prover needs to give signature to verifier so that verifier can start a challenge
-        let challenge_gate_num: usize =
+        challenge_gate_num =
             take_stdin("Enter your challenge gate if you want to challenge the prover\n").unwrap();
         let musig_presigned_by_prover = verifier.get_signature(i as usize);
 
