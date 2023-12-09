@@ -1,5 +1,5 @@
 use crate::wire::{HashValue, Wire};
-use bitcoin::ScriptBuf;
+use bitcoin::{ScriptBuf};
 use std::{
     iter::zip,
     sync::{Arc, Mutex},
@@ -46,9 +46,9 @@ pub trait GateTrait {
             .iter()
             .map(|wire_arcm| wire_arcm.lock().unwrap().get_preimage_of_selector())
             .collect::<Vec<[u8; 32]>>();
-        let mut witness = vec![hashlock_preimage];
-        witness.extend(input_preimages);
+        let mut witness = input_preimages;
         witness.extend(output_preimages);
+        witness.push(hashlock_preimage);
         witness
     }
 

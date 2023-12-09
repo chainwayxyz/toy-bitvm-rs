@@ -443,8 +443,11 @@ async fn main() {
 
             let witness0 = sighash_cache.witness_mut(0).unwrap();
             witness0.push(prover_response_sig.as_ref());
+            circuit.gates[challenge_gate_index]
+                .create_response_witness(challenge_preimage)
+                .iter()
+                .for_each(|x| witness0.push(x));
             // circuit.gates[challenge_gate_index].create_response_witness
-            witness0.push(challenge_preimage);
             witness0.push(response_script);
             witness0.push(&response_control_block.serialize());
 
@@ -463,7 +466,7 @@ async fn main() {
 
             // let _sig = verifier.sign(sig_hash);
             println!("NOW WE GIVE THE RESPONSEEE");
-            return;
+            // return;
             // send_message(&mut ws_stream, &sig).await.unwrap();
         }
 
