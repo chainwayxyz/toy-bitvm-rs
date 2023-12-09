@@ -1,5 +1,5 @@
 use crate::wire::{HashValue, Wire};
-use bitcoin::{ScriptBuf};
+use bitcoin::ScriptBuf;
 use std::{
     iter::zip,
     sync::{Arc, Mutex},

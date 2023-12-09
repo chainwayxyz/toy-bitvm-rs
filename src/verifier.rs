@@ -351,7 +351,6 @@ async fn handle_connection(stream: TcpStream) {
             println!("Waiting for provers response");
             let _provers_response =
                 watch_transaction(&rpc, &challenge_tx.txid(), watch_interval).unwrap();
-            
         }
 
         let mut response_tx = Transaction {
