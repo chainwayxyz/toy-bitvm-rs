@@ -446,5 +446,5 @@ async fn handle_connection(stream: TcpStream) {
         last_output = outputs2;
         last_txid = response_tx.txid();
     }
-    println!("{:?}",last_output);
+    println!("{:?}", last_output);
 }
