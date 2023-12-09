@@ -90,6 +90,12 @@ async fn handle_connection(stream: TcpStream) {
     let mut last_txid = initial_fund_txid;
     let _last_vout = initial_fund_tx.details[0].vout;
     let mut last_output: Vec<TxOut> = Vec::new();
+    let mut kickoff_tx: Transaction = Transaction {
+        version: bitcoin::transaction::Version::TWO,
+        lock_time: LockTime::from(Height::MIN),
+        input: vec![],
+        output: vec![],
+    };
 
     for i in 0..bisection_length as u64 {
         println!("Bisection iteration {}", i);
@@ -132,10 +138,18 @@ async fn handle_connection(stream: TcpStream) {
             },
         ];
 
-        let mut challenge_tx = Transaction {
-            version: bitcoin::transaction::Version::TWO,
-            lock_time: LockTime::from(Height::MIN),
-            input: vec![
+        let inputs = if i == 0 {
+            vec![TxIn {
+                previous_output: OutPoint {
+                    txid: initial_fund_txid,
+                    vout: initial_fund_tx.details[0].vout,
+                },
+                script_sig: ScriptBuf::new(),
+                sequence: bitcoin::transaction::Sequence::ENABLE_RBF_NO_LOCKTIME,
+                witness: Witness::new(),
+            }]
+        } else {
+            vec![
                 TxIn {
                     previous_output: OutPoint {
                         txid: last_txid,
@@ -154,7 +168,13 @@ async fn handle_connection(stream: TcpStream) {
                     sequence: bitcoin::transaction::Sequence::ENABLE_RBF_NO_LOCKTIME,
                     witness: Witness::new(),
                 },
-            ],
+            ]
+        };
+
+        let mut challenge_tx = Transaction {
+            version: bitcoin::transaction::Version::TWO,
+            lock_time: LockTime::from(Height::MIN),
+            input: inputs,
             output: outputs1.clone(),
         };
 
@@ -175,6 +195,8 @@ async fn handle_connection(stream: TcpStream) {
                 .unwrap();
             let sig = verifier.sign(sig_hash);
             send_message(&mut ws_stream, &sig).await.unwrap();
+        } else {
+            kickoff_tx = challenge_tx.clone();
         }
 
         let mut response_tx = Transaction {
@@ -230,4 +252,8 @@ async fn handle_connection(stream: TcpStream) {
         last_txid = response_tx.txid();
     }
     println!("Bisection complete!");
+    let kickoff_txid: Txid = receive_message(&mut ws_stream).await.unwrap();
+    if kickoff_tx.txid() != kickoff_txid {
+        panic!("Kickoff txid mismatch!");
+    }
 }

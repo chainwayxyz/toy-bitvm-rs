@@ -1,6 +1,7 @@
 use std::borrow::BorrowMut;
 
 use bitcoin::absolute::{Height, LockTime};
+use bitcoin::consensus::encode::serialize_hex;
 use bitcoin::hashes::Hash;
 use bitcoin::secp256k1::schnorr::Signature;
 use bitcoin::secp256k1::Message;
@@ -100,6 +101,12 @@ async fn main() {
     let mut last_txid = initial_fund_txid;
     let _last_vout = initial_fund_tx.details[0].vout;
     let mut last_output: Vec<TxOut> = Vec::new();
+    let mut kickoff_tx: Transaction = Transaction {
+        version: bitcoin::transaction::Version::TWO,
+        lock_time: LockTime::from(Height::MIN),
+        input: vec![],
+        output: vec![],
+    };
 
     for i in 0..bisection_length as u64 {
         println!("Bisection iteration {}", i);
@@ -137,10 +144,18 @@ async fn main() {
             },
         ];
 
-        let mut challenge_tx = Transaction {
-            version: bitcoin::transaction::Version::TWO,
-            lock_time: LockTime::from(Height::MIN),
-            input: vec![
+        let inputs = if i == 0 {
+            vec![TxIn {
+                previous_output: OutPoint {
+                    txid: initial_fund_txid,
+                    vout: initial_fund_tx.details[0].vout,
+                },
+                script_sig: ScriptBuf::new(),
+                sequence: bitcoin::transaction::Sequence::ENABLE_RBF_NO_LOCKTIME,
+                witness: Witness::new(),
+            }]
+        } else {
+            vec![
                 TxIn {
                     previous_output: OutPoint {
                         txid: last_txid,
@@ -159,7 +174,13 @@ async fn main() {
                     sequence: bitcoin::transaction::Sequence::ENABLE_RBF_NO_LOCKTIME,
                     witness: Witness::new(),
                 },
-            ],
+            ]
+        };
+
+        let mut challenge_tx = Transaction {
+            version: bitcoin::transaction::Version::TWO,
+            lock_time: LockTime::from(Height::MIN),
+            input: inputs,
             output: outputs1.clone(),
         };
 
@@ -185,6 +206,8 @@ async fn main() {
                 &verifier_public_key,
             )
             .unwrap();
+        } else {
+            kickoff_tx = challenge_tx.clone();
         }
 
         let mut response_tx = Transaction {
@@ -234,4 +257,39 @@ async fn main() {
         last_output = outputs2;
         last_txid = response_tx.txid();
     }
+    println!("Bisection complete");
+    // now we send the funding
+
+    let prevouts = vec![TxOut {
+        script_pubkey: prover.address.script_pubkey(),
+        value: Amount::from_sat(amt),
+    }];
+
+    // if kickoff_tx uninitialized, then panic
+
+    println!("prevout: {:?}", prevouts);
+    let mut sighash_cache = SighashCache::new(kickoff_tx.borrow_mut());
+    // TODO: add support for signing with a keypair
+    let sig_hash = sighash_cache
+        .taproot_key_spend_signature_hash(
+            0,
+            &bitcoin::sighash::Prevouts::All(&prevouts),
+            bitcoin::sighash::TapSighashType::Default,
+        )
+        .unwrap();
+
+    // Witness::from_slice(sigHash)
+    let sig = prover.sign_with_tweak(sig_hash, None);
+    let witness = sighash_cache.witness_mut(0).unwrap();
+    witness.push(sig.as_ref());
+
+    // println!("txid : {:?}", serialize_hex(&tx));
+
+    let kickoff_txid = rpc
+        .send_raw_transaction(&kickoff_tx)
+        .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
+    println!("initial kickoff txid = {:?}", kickoff_txid);
+    send_message(&mut ws_stream, &kickoff_txid)
+        .await
+        .unwrap();
 }
