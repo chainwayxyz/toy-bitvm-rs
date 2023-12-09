@@ -1,4 +1,5 @@
 use std::borrow::BorrowMut;
+use std::time::Duration;
 
 use bitcoin::absolute::{Height, LockTime};
 use bitcoin::hashes::Hash;
@@ -11,7 +12,7 @@ use bitcoin::{Amount, OutPoint, ScriptBuf, TapLeafHash, TxIn, TxOut, Witness};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
 use bitvm::transactions::{
     generate_2_of_2_script, generate_challenge_script, generate_equivoation_address_and_info,
-    generate_response_second_address_and_info,
+    generate_response_second_address_and_info, watch_transaction,
 };
 use bitvm::utils::take_stdin;
 // verifier.rs
@@ -82,6 +83,7 @@ async fn handle_connection(stream: TcpStream) {
     let amt: u64 = 100_000;
     let fee: u64 = 500;
     let dust_limit: u64 = 546;
+    let watch_interval = Duration::from_secs(1);
 
     let initial_fund_txid: Txid = receive_message(&mut ws_stream).await.unwrap();
     let initial_fund_tx = rpc
@@ -337,7 +339,7 @@ async fn handle_connection(stream: TcpStream) {
             ]
         };
 
-        let mut challenge_tx = Transaction {
+        let challenge_tx = Transaction {
             version: bitcoin::transaction::Version::TWO,
             lock_time: LockTime::from(Height::MIN),
             input: inputs,
@@ -346,23 +348,9 @@ async fn handle_connection(stream: TcpStream) {
 
         if i != 0 {
             // Verifier needs needs to give signature to prover so that prover can give a response
-            let mut sighash_cache = SighashCache::new(challenge_tx.borrow_mut());
-
-            let sig_hash = sighash_cache
-                .taproot_script_spend_signature_hash(
-                    1_usize,
-                    &bitcoin::sighash::Prevouts::All(&last_output),
-                    TapLeafHash::from_script(
-                        &generate_2_of_2_script(prover_public_key, verifier_public_key),
-                        LeafVersion::TapScript,
-                    ),
-                    bitcoin::sighash::TapSighashType::Default,
-                )
-                .unwrap();
-            let _sig = verifier.sign(sig_hash);
-            println!("verifier needs to listen onchain to see if prover responded correctly");
-            return;
-            // send_message(&mut ws_stream, &sig).await.unwrap();
+            println!("Waiting for provers response");
+            let _provers_response =
+                watch_transaction(&rpc, &challenge_tx.txid(), watch_interval).unwrap();
         }
 
         let mut response_tx = Transaction {
@@ -458,4 +446,5 @@ async fn handle_connection(stream: TcpStream) {
         last_output = outputs2;
         last_txid = response_tx.txid();
     }
+    println!("{:?}",last_output);
 }

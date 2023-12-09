@@ -202,8 +202,8 @@ pub fn watch_transaction(
     loop {
         match rpc.get_raw_transaction(txid, None) {
             Ok(tx) => return Ok(tx),
-            Err(e) => {
-                println!("Transaction {:?} not found yet: {}", txid, e);
+            Err(_e) => {
+                // println!("Transaction {:?} not found yet: {}", txid, e);
                 thread::sleep(interval);
             }
         }

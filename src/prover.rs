@@ -495,6 +495,7 @@ async fn main() {
 
         // println!("response txid: {:?}", response_tx.txid());
         // Prover waits for challenge
+        println!("Waiting for challenge");
         let challenge_tx = watch_transaction(&rpc, &response_tx.txid(), watch_interval).unwrap();
         let preimage: &[u8; 32] = challenge_tx.input[0]
             .witness

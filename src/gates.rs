@@ -282,22 +282,16 @@ mod tests {
 
         let gate: Box<dyn GateTrait> = match gate_name {
             "NotGate" => Box::new(NotGate::new(
-                vec![Arc::new(Mutex::new(wire_0.clone()))],
-                vec![Arc::new(Mutex::new(wire_2.clone()))],
+                vec![Arc::new(Mutex::new(wire_0))],
+                vec![Arc::new(Mutex::new(wire_2))],
             )),
             "AndGate" => Box::new(AndGate::new(
-                vec![
-                    Arc::new(Mutex::new(wire_0.clone())),
-                    Arc::new(Mutex::new(wire_1.clone())),
-                ],
-                vec![Arc::new(Mutex::new(wire_2.clone()))],
+                vec![Arc::new(Mutex::new(wire_0)), Arc::new(Mutex::new(wire_1))],
+                vec![Arc::new(Mutex::new(wire_2))],
             )),
             _ => Box::new(AndGate::new(
-                vec![
-                    Arc::new(Mutex::new(wire_0.clone())),
-                    Arc::new(Mutex::new(wire_1.clone())),
-                ],
-                vec![Arc::new(Mutex::new(wire_2.clone()))],
+                vec![Arc::new(Mutex::new(wire_0)), Arc::new(Mutex::new(wire_1))],
+                vec![Arc::new(Mutex::new(wire_2))],
             )),
         };
         let input_size = gate.get_input_size();
