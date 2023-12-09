@@ -1,5 +1,5 @@
 use bitcoin::opcodes::all::{
-    OP_EQUALVERIFY, OP_FROMALTSTACK, OP_NOT, OP_SHA256, OP_TOALTSTACK, OP_BOOLAND, OP_NUMEQUAL,
+    OP_BOOLAND, OP_EQUALVERIFY, OP_FROMALTSTACK, OP_NOT, OP_NUMEQUAL, OP_SHA256, OP_TOALTSTACK,
 };
 use bitcoin::script::Builder;
 use bitcoin::ScriptBuf;
@@ -207,7 +207,6 @@ impl GateTrait for XorGate {
 
 #[cfg(test)]
 mod tests {
-    use std::vec;
     use super::*;
     use bitcoin::hashes::sha256;
     use bitcoin::hashes::Hash;
@@ -215,6 +214,7 @@ mod tests {
     use bitcoin::Transaction;
     use bitcoin_scriptexec::*;
     use rand::Rng;
+    use std::vec;
 
     fn check_exec(mut exec: Exec, correct_exec: bool) -> bool {
         let has_error = loop {
@@ -235,7 +235,6 @@ mod tests {
     }
 
     fn create_exec(script: &ScriptBuf, solution_preimages: Vec<Vec<u8>>) -> Exec {
-        
         Exec::new(
             ExecCtx::Tapscript,
             Options::default(),
@@ -339,13 +338,15 @@ mod tests {
     fn test_gate(gate_name: &str) {
         let wire_0 = Wire::new(0);
         let wire_1 = Wire::new(1);
-        let input_wires = vec![Rc::new(RefCell::new(wire_0.clone())), Rc::new(RefCell::new(wire_1.clone()))];
+        let input_wires = vec![
+            Rc::new(RefCell::new(wire_0.clone())),
+            Rc::new(RefCell::new(wire_1.clone())),
+        ];
         let wire_2 = Wire::new(2);
         let output_wires = vec![Rc::new(RefCell::new(wire_2.clone()))];
         let gate: Box<dyn GateTrait> = match gate_name {
             "NotGate" => Box::new(NotGate::new(
                 vec![Rc::new(RefCell::new(wire_0.clone()))],
-
                 vec![Rc::new(RefCell::new(wire_2.clone()))],
             )),
             "AndGate" => Box::new(AndGate::new(
@@ -446,7 +447,7 @@ mod tests {
             }
         }
     }
-    
+
     #[test]
     fn test_not_gate2() {
         test_gate("NotGate");
