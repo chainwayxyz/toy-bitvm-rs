@@ -1,6 +1,5 @@
 use bitcoin::opcodes::all::{
-    OP_BOOLAND, OP_EQUALVERIFY, OP_FROMALTSTACK, OP_NOT, OP_NUMEQUAL, OP_SHA256,
-    OP_TOALTSTACK,
+    OP_BOOLAND, OP_EQUALVERIFY, OP_FROMALTSTACK, OP_NOT, OP_NUMEQUAL, OP_SHA256, OP_TOALTSTACK,
 };
 use bitcoin::script::Builder;
 use bitcoin::ScriptBuf;
