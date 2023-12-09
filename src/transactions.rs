@@ -142,15 +142,14 @@ pub fn add_bit_commitment_script(wire_bit_hashes: HashTuple, builder: Builder) -
 }
 
 pub fn generate_challenge_script(
-    prover_pk: XOnlyPublicKey,
+    _prover_pk: XOnlyPublicKey,
     verifier_pk: XOnlyPublicKey,
     challenge_hash: &HashValue,
 ) -> ScriptBuf {
     Builder::new()
+        .push_opcode(OP_SHA256)
         .push_slice(challenge_hash)
         .push_opcode(OP_EQUALVERIFY)
-        .push_x_only_key(&prover_pk)
-        .push_opcode(OP_CHECKSIGVERIFY)
         .push_x_only_key(&verifier_pk)
         .push_opcode(OP_CHECKSIG)
         .into_script()

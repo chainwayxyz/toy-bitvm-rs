@@ -15,6 +15,7 @@ use bitvm::transactions::{
     generate_2_of_2_script, generate_equivoation_address_and_info,
     generate_response_second_address_and_info,
 };
+
 // prover.rs
 use bitvm::{
     actor::Actor,
@@ -290,4 +291,6 @@ async fn main() {
         .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
     println!("initial kickoff txid = {:?}", kickoff_txid);
     send_message(&mut ws_stream, &kickoff_txid).await.unwrap();
+
+    
 }
