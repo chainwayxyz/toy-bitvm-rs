@@ -194,20 +194,6 @@ pub fn generate_timelock_script(actor_pk: XOnlyPublicKey, block_count: u32) -> S
         .into_script()
 }
 
-// pub fn concat_two_scripts(mut script_1: ScriptBuf, script2: ScriptBuf) -> ScriptBuf {
-    
-// }
-
-// pub fn add_lockhash_to_script(lock_hash: HashValue, script: ScriptBuf) -> ScriptBuf {
-//     let builder = Builder::new()
-//         .push_opcode(OP_SHA256)
-//         .push_slice(lock_hash)
-//         .push_opcode(OP_EQUALVERIFY);
-//         Builder::from(script.as_bytes().to_vec())
-//             .push_script(builder.into_script())
-//             .into_script()
-// }
-
 pub fn watch_transaction(
     rpc: &Client,
     txid: &Txid,
