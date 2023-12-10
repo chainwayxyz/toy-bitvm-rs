@@ -363,7 +363,7 @@ async fn handle_connection(stream: TcpStream) {
                 witness.push(
                     provers_response.input[0]
                         .witness
-                        .nth(i + 1)
+                        .nth(i + 2)
                         .unwrap()
                         .try_into()
                         .expect("Slice with incorrect length"),

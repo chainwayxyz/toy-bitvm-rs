@@ -47,13 +47,9 @@ impl GateTrait for NotGate {
     }
 
     fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
-        let builder = Builder::new()
-            .push_opcode(OP_SHA256)
-            .push_slice(lock_hash)
-            .push_opcode(OP_EQUALVERIFY);
         let builder = add_bit_commitment_script(
             self.output_wires[0].lock().unwrap().get_hash_pair(),
-            builder,
+            Builder::new(),
         )
         .push_opcode(OP_TOALTSTACK);
         let builder =
@@ -61,6 +57,9 @@ impl GateTrait for NotGate {
         builder
             .push_opcode(OP_NOT)
             .push_opcode(OP_FROMALTSTACK)
+            .push_opcode(OP_EQUALVERIFY)
+            .push_opcode(OP_SHA256)
+            .push_slice(lock_hash)
             .push_opcode(OP_EQUALVERIFY)
             .into_script()
     }
@@ -103,13 +102,9 @@ impl GateTrait for AndGate {
     }
 
     fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
-        let builder = Builder::new()
-            .push_opcode(OP_SHA256)
-            .push_slice(lock_hash)
-            .push_opcode(OP_EQUALVERIFY);
         let builder = add_bit_commitment_script(
             self.output_wires[0].lock().unwrap().get_hash_pair(),
-            builder,
+            Builder::new(),
         )
         .push_opcode(OP_TOALTSTACK);
         let builder =
@@ -121,6 +116,9 @@ impl GateTrait for AndGate {
             .push_opcode(OP_FROMALTSTACK)
             .push_opcode(OP_BOOLAND)
             .push_opcode(OP_FROMALTSTACK)
+            .push_opcode(OP_EQUALVERIFY)
+            .push_opcode(OP_SHA256)
+            .push_slice(lock_hash)
             .push_opcode(OP_EQUALVERIFY)
             .into_script()
     }
@@ -163,13 +161,9 @@ impl GateTrait for XorGate {
     }
 
     fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
-        let builder = Builder::new()
-            .push_opcode(OP_SHA256)
-            .push_slice(lock_hash)
-            .push_opcode(OP_EQUALVERIFY);
         let builder = add_bit_commitment_script(
             self.output_wires[0].lock().unwrap().get_hash_pair(),
-            builder,
+            Builder::new(),
         )
         .push_opcode(OP_TOALTSTACK);
         let builder =
@@ -182,6 +176,9 @@ impl GateTrait for XorGate {
             .push_opcode(OP_NUMEQUAL)
             .push_opcode(OP_NOT)
             .push_opcode(OP_FROMALTSTACK)
+            .push_opcode(OP_EQUALVERIFY)
+            .push_opcode(OP_SHA256)
+            .push_slice(lock_hash)
             .push_opcode(OP_EQUALVERIFY)
             .into_script()
     }
@@ -225,13 +222,9 @@ impl GateTrait for OrGate {
     }
 
     fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
-        let builder = Builder::new()
-            .push_opcode(OP_SHA256)
-            .push_slice(lock_hash)
-            .push_opcode(OP_EQUALVERIFY);
         let builder = add_bit_commitment_script(
             self.output_wires[0].lock().unwrap().get_hash_pair(),
-            builder,
+            Builder::new(),
         )
         .push_opcode(OP_TOALTSTACK);
         let builder =
@@ -244,8 +237,10 @@ impl GateTrait for OrGate {
             .push_opcode(OP_BOOLOR)
             .push_opcode(OP_FROMALTSTACK)
             .push_opcode(OP_EQUALVERIFY)
+            .push_opcode(OP_SHA256)
+            .push_slice(lock_hash)
+            .push_opcode(OP_EQUALVERIFY)
             .into_script()
-            
     }
 
     fn run_gate_on_inputs(&self, inputs: Vec<bool>) -> Vec<bool> {
@@ -286,13 +281,9 @@ impl GateTrait for BitAdditionGate {
     }
 
     fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
-        let builder = Builder::new()
-            .push_opcode(OP_SHA256)
-            .push_slice(lock_hash)
-            .push_opcode(OP_EQUALVERIFY);
         let builder = add_bit_commitment_script(
             self.output_wires[1].lock().unwrap().get_hash_pair(),
-            builder,
+            Builder::new(),
         )
         .push_opcode(OP_TOALTSTACK);
         let builder = add_bit_commitment_script(
@@ -314,6 +305,9 @@ impl GateTrait for BitAdditionGate {
             .push_opcode(OP_EQUALVERIFY)
             .push_opcode(OP_BOOLAND)
             .push_opcode(OP_FROMALTSTACK)
+            .push_opcode(OP_EQUALVERIFY)
+            .push_opcode(OP_SHA256)
+            .push_slice(lock_hash)
             .push_opcode(OP_EQUALVERIFY)
             .into_script()
     }
