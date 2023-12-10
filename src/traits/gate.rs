@@ -1,4 +1,4 @@
-use crate::wire::{HashValue, Wire, PreimageValue};
+use crate::wire::{HashValue, PreimageValue, Wire};
 use bitcoin::ScriptBuf;
 use std::{
     iter::zip,

@@ -442,21 +442,8 @@ async fn handle_connection(stream: TcpStream) {
 
             let witness = sighash_cache.witness_mut(0).unwrap();
             witness.push(equivocation_sig.as_ref());
-            witness.push(
-                value
-                    .clone()
-                    .preimages
-                    .unwrap()
-                    .one
-                    .unwrap(),
-            );
-            witness.push(
-                value
-                    .preimages
-                    .unwrap()
-                    .zero
-                    .unwrap(),
-            );
+            witness.push(value.clone().preimages.unwrap().one.unwrap());
+            witness.push(value.preimages.unwrap().zero.unwrap());
             witness.push(equivocation_script);
             witness.push(&equivocation_control_block.serialize());
 

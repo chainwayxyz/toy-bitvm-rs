@@ -192,6 +192,37 @@ impl GateTrait for XorGate {
     }
 }
 
+macro_rules! create_gate_without_wires {
+    ($gate_type:ty, $input_wires:expr, $output_wires:expr) => {{
+        if let (Some(input_wires), Some(output_wires)) =
+            ($input_wires.as_ref(), $output_wires.as_ref())
+        {
+            return Box::new(<$gate_type>::new(input_wires.clone(), output_wires.clone()));
+        }
+        let dummy_gate = <$gate_type>::new(vec![], vec![]);
+        let input_wires: Vec<_> = (0..dummy_gate.get_input_size())
+            .map(|_| Arc::new(Mutex::new(Wire::new(0))))
+            .collect();
+        let output_wires: Vec<_> = (0..dummy_gate.get_output_size())
+            .map(|_| Arc::new(Mutex::new(Wire::new(0))))
+            .collect();
+        Box::new(<$gate_type>::new(input_wires, output_wires))
+    }};
+}
+
+pub fn create_gate(
+    gate_name: &str,
+    input_wires: Option<Vec<Arc<Mutex<Wire>>>>,
+    output_wires: Option<Vec<Arc<Mutex<Wire>>>>,
+) -> Box<dyn GateTrait + std::marker::Send> {
+    match gate_name {
+        "not" => create_gate_without_wires!(NotGate, &input_wires, &output_wires),
+        "xor" => create_gate_without_wires!(XorGate, &input_wires, &output_wires),
+        "and" => create_gate_without_wires!(AndGate, &input_wires, &output_wires),
+        _ => panic!("Invalid gate name"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::wire::PreimageValue;
@@ -204,7 +235,7 @@ mod tests {
     use bitcoin_scriptexec::*;
     use rand::Rng;
 
-    fn check_exec(mut exec: Exec, correct_exec: bool) -> bool {
+    fn check_exec(mut exec: Exec, correct_exec: bool) {
         let has_error = loop {
             if exec.exec_next().is_err() {
                 // println!("error: {:?}", exec.exec_next().err());
@@ -215,10 +246,8 @@ mod tests {
         println!("res: {:?}", res);
         if correct_exec {
             assert_eq!(res.error, None);
-            false
         } else {
             assert!(has_error);
-            true
         }
     }
 
@@ -238,7 +267,11 @@ mod tests {
                 taproot_annex_scriptleaf: Some((TapLeafHash::all_zeros(), None)),
             },
             script.clone(),
-            solution_preimages.clone().iter().map(|preimage| preimage.to_vec()).collect(),
+            solution_preimages
+                
+                .iter()
+                .map(|preimage| preimage.to_vec())
+                .collect(),
         )
         .expect("error creating exec")
     }
@@ -256,190 +289,40 @@ mod tests {
     }
 
     fn test_gate(gate_name: &str) {
-
-        let wire_0 = Wire::new(0);
-        let wire_1 = Wire::new(1);
-        let wire_2 = Wire::new(2);
-
-        let mut gate: Box<dyn GateTrait> = match gate_name {
-            "NotGate" => Box::new(NotGate::new(
-                vec![Arc::new(Mutex::new(wire_0))],
-                vec![Arc::new(Mutex::new(wire_2))],
-            )),
-            "AndGate" => Box::new(AndGate::new(
-                vec![Arc::new(Mutex::new(wire_0)), Arc::new(Mutex::new(wire_1))],
-                vec![Arc::new(Mutex::new(wire_2))],
-            )),
-            _ => Box::new(AndGate::new(
-                vec![Arc::new(Mutex::new(wire_0)), Arc::new(Mutex::new(wire_1))],
-                vec![Arc::new(Mutex::new(wire_2))],
-            )),
-        };
-
-        let input_size = gate.get_input_size();
-        let output_size = gate.get_output_size();
-        let binding_input = gate.get_input_wires().clone();
-        let input_wire_preimages = binding_input.iter().map(|wire_arcm| {
-            let guard = &wire_arcm.lock().expect("Failed to lock mutex");
-            guard.preimages.unwrap()
-        });
-        let binding_output = gate.get_output_wires().clone();
-        let output_wire_preimages = binding_output.iter().map(|wire_arcm| {
-            let guard = &wire_arcm.lock().expect("Failed to lock mutex");
-            guard.preimages.unwrap()
-        });
-
-        let all_possible_inputs = generate_all_possibilities(input_size);
-        let all_possible_outputs = generate_all_possibilities(output_size);
-
-        println!("all possible inputs: {:?}", all_possible_inputs);
-        println!("all possible outputs: {:?}", all_possible_outputs);
+        let mut gate: Box<dyn GateTrait> = create_gate(gate_name, None, None);
+        let all_possible_inputs = generate_all_possibilities(gate.get_input_size());
+        let all_possible_outputs = generate_all_possibilities(gate.get_output_size());
 
         let mut rng = rand::thread_rng();
         let lock_preimage: PreimageValue = rng.gen();
         let lock_hash = sha256::Hash::hash(&lock_preimage).to_byte_array();
         let script = gate.create_response_script(lock_hash);
-        println!("script: {:?}", script);
 
         for input in all_possible_inputs.iter() {
-
             gate.set_input_bits(input.clone());
-            gate.evaluate();
-
             let gate_res = gate.run_gate_on_inputs(input.clone());
-
             for output in all_possible_outputs.iter() {
-
                 gate.set_output_bits(output.clone());
-
                 let solution_preimages = gate.create_response_witness(lock_preimage);
-
-                println!("solution preimages: {:?}", solution_preimages.clone());
-
                 let exec = create_exec(&script, solution_preimages);
-                println!("gate_res: {:?}", gate_res);
-                println!("output: {:?}", output);
-                let mut compare_vectors = true;
-
-                for i in 0..output_size {
-                    if gate_res[i] != output[i] {
-                        compare_vectors = false;
-                        break;
-                    }
-                }
-
-                println!("compare_vectors: {}", compare_vectors);
-                println!("input preimage indices: {:?}", input_wire_preimages);
-                println!("output preimage indices: {:?}", output_wire_preimages);
-                let has_error = check_exec(exec, compare_vectors);
-                println!("has_error: {}", has_error);
-                
+                let compare_vectors = gate_res.iter().eq(output.iter());
+                check_exec(exec, compare_vectors);
             }
         }
-    }
-
-    #[test]
-    fn test_not_gate2() {
-        test_gate("NotGate");
-    }
-
-    #[test]
-    fn test_xor_gate() {
-        test_gate("XorGate");
-    }
-
-    #[test]
-    fn test_and_gate() {
-        test_gate("AndGate");
     }
 
     #[test]
     fn test_not_gate() {
-        let input_wire_0 = Wire::new(0);
-        // get the input wire preimages, it should not be option, but a vector of preimages
-        let input_wire_0_preimages = input_wire_0.preimages.unwrap();
-        let output_wire_0 = Wire::new(1);
-        let output_wire_0_preimages = output_wire_0.preimages.unwrap();
+        test_gate("not");
+    }
 
-        let not_gate = NotGate::new(
-            vec![Arc::new(Mutex::new(input_wire_0))],
-            vec![Arc::new(Mutex::new(output_wire_0))],
-        );
+    #[test]
+    fn test_xor_gate() {
+        test_gate("xor");
+    }
 
-        let mut rng = rand::thread_rng();
-
-        let lock_preimage: PreimageValue = rng.gen();
-
-        let lock_hash = sha256::Hash::hash(&lock_preimage).to_byte_array();
-
-        let script = not_gate.create_response_script(lock_hash);
-
-        let solution_01_preimages = vec![
-            input_wire_0_preimages.zero.unwrap().clone().to_vec(),
-            output_wire_0_preimages.one.unwrap().clone().to_vec(),
-            lock_preimage.to_vec(),
-        ];
-        let mut exec_01 = Exec::new(
-            ExecCtx::Tapscript,
-            Options::default(),
-            TxTemplate {
-                tx: Transaction {
-                    version: bitcoin::transaction::Version::TWO,
-                    lock_time: bitcoin::locktime::absolute::LockTime::ZERO,
-                    input: vec![],
-                    output: vec![],
-                },
-                prevouts: vec![],
-                input_idx: 0,
-                taproot_annex_scriptleaf: Some((TapLeafHash::all_zeros(), None)),
-            },
-            script.clone(),
-            solution_01_preimages,
-        )
-        .expect("error creating exec");
-
-        loop {
-            if exec_01.exec_next().is_err() {
-                println!("error: {:?}", exec_01.exec_next().err());
-                break;
-            }
-        }
-
-        let res = exec_01.result().unwrap().clone();
-        println!("res: {:?}", res);
-
-        assert_eq!(res.error, None);
-
-        let solution_01_preimages = vec![
-            input_wire_0_preimages.zero.unwrap().clone().to_vec(),
-            output_wire_0_preimages.zero.unwrap().clone().to_vec(),
-            lock_preimage.to_vec(),
-        ];
-        let mut exec_00 = Exec::new(
-            ExecCtx::Tapscript,
-            Options::default(),
-            TxTemplate {
-                tx: Transaction {
-                    version: bitcoin::transaction::Version::TWO,
-                    lock_time: bitcoin::locktime::absolute::LockTime::ZERO,
-                    input: vec![],
-                    output: vec![],
-                },
-                prevouts: vec![],
-                input_idx: 0,
-                taproot_annex_scriptleaf: Some((TapLeafHash::all_zeros(), None)),
-            },
-            script,
-            solution_01_preimages,
-        )
-        .expect("error creating exec");
-
-        let has_error = loop {
-            if exec_00.exec_next().is_err() {
-                println!("error: {:?}", exec_00.exec_next().err());
-                break true;
-            }
-        };
-        assert!(has_error);
+    #[test]
+    fn test_and_gate() {
+        test_gate("and");
     }
 }

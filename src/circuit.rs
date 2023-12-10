@@ -3,10 +3,10 @@ use std::iter::zip;
 
 use std::sync::{Arc, Mutex};
 
+use crate::gates::create_gate;
 use crate::wire::HashTuple;
 
 use crate::{
-    gates::{AndGate, NotGate, XorGate},
     traits::gate::GateTrait,
     utils::read_lines,
     wire::Wire,
@@ -129,28 +129,33 @@ impl Circuit {
                         })
                         .collect();
                     let gate_type = words.next().unwrap();
+                    gates.push(create_gate(
+                        &gate_type.to_lowercase(),
+                        Some(input_wires),
+                        Some(output_wires),
+                    ))
 
-                    if ["not".to_string(), "inv".to_string()].contains(&gate_type.to_lowercase()) {
-                        let gate = NotGate {
-                            input_wires,
-                            output_wires,
-                        };
-                        gates.push(Box::new(gate));
-                    } else if ["and".to_string()].contains(&gate_type.to_lowercase()) {
-                        let gate = AndGate {
-                            input_wires,
-                            output_wires,
-                        };
-                        gates.push(Box::new(gate));
-                    } else if ["xor".to_string()].contains(&gate_type.to_lowercase()) {
-                        let gate = XorGate {
-                            input_wires,
-                            output_wires,
-                        };
-                        gates.push(Box::new(gate));
-                    } else {
-                        panic!("unknown gate type");
-                    }
+                    // if ["not".to_string(), "inv".to_string()].contains(&gate_type.to_lowercase()) {
+                    //     let gate = NotGate {
+                    //         input_wires,
+                    //         output_wires,
+                    //     };
+                    //     gates.push(Box::new(gate));
+                    // } else if ["and".to_string()].contains(&gate_type.to_lowercase()) {
+                    //     let gate = AndGate {
+                    //         input_wires,
+                    //         output_wires,
+                    //     };
+                    //     gates.push(Box::new(gate));
+                    // } else if ["xor".to_string()].contains(&gate_type.to_lowercase()) {
+                    //     let gate = XorGate {
+                    //         input_wires,
+                    //         output_wires,
+                    //     };
+                    //     gates.push(Box::new(gate));
+                    // } else {
+                    //     panic!("unknown gate type");
+                    // }
                 }
             }
         }
