@@ -222,7 +222,7 @@ mod tests {
         }
     }
 
-    fn create_exec(script: &ScriptBuf, solution_preimages: Vec<Vec<u8>>) -> Exec {
+    fn create_exec(script: &ScriptBuf, solution_preimages: Vec<PreimageValue>) -> Exec {
         Exec::new(
             ExecCtx::Tapscript,
             Options::default(),
@@ -238,17 +238,9 @@ mod tests {
                 taproot_annex_scriptleaf: Some((TapLeafHash::all_zeros(), None)),
             },
             script.clone(),
-            solution_preimages,
+            solution_preimages.clone().iter().map(|preimage| preimage.to_vec()).collect(),
         )
         .expect("error creating exec")
-    }
-
-    fn get_preimage_index(input: bool) -> usize {
-        if input {
-            1
-        } else {
-            0
-        }
     }
 
     fn generate_all_possibilities(num_inputs: usize) -> Vec<Vec<bool>> {
@@ -264,22 +256,12 @@ mod tests {
     }
 
     fn test_gate(gate_name: &str) {
+
         let wire_0 = Wire::new(0);
-        // let wire_0_preimages = wire_0.preimages.unwrap();
-
         let wire_1 = Wire::new(1);
-        // let wire_1_preimages = wire_1.preimages.unwrap();
-
         let wire_2 = Wire::new(2);
-        // let wire_2_preimages = wire_2.preimages.unwrap();
 
-        let input_wires = vec![
-            Arc::new(Mutex::new(wire_0.clone())),
-            Arc::new(Mutex::new(wire_1.clone())),
-        ];
-        let output_wires = vec![Arc::new(Mutex::new(wire_2.clone()))];
-
-        let gate: Box<dyn GateTrait> = match gate_name {
+        let mut gate: Box<dyn GateTrait> = match gate_name {
             "NotGate" => Box::new(NotGate::new(
                 vec![Arc::new(Mutex::new(wire_0))],
                 vec![Arc::new(Mutex::new(wire_2))],
@@ -293,23 +275,19 @@ mod tests {
                 vec![Arc::new(Mutex::new(wire_2))],
             )),
         };
+
         let input_size = gate.get_input_size();
         let output_size = gate.get_output_size();
-        let mut input_wire_preimages = vec![];
-        let mut output_wire_preimages = vec![];
-
-        for i in 0..input_size {
-            let guard = &input_wires[i].lock().expect("Failed to lock mutex");
-            input_wire_preimages.push(guard.preimages.unwrap());
-        }
-
-        for i in 0..output_size {
-            let guard = &output_wires[i].lock().expect("Failed to lock mutex");
-            output_wire_preimages.push(guard.preimages.unwrap());
-        }
-
-        println!("input wire preimages: {:?}", input_wire_preimages);
-        println!("output wire preimages: {:?}", output_wire_preimages);
+        let binding_input = gate.get_input_wires().clone();
+        let input_wire_preimages = binding_input.iter().map(|wire_arcm| {
+            let guard = &wire_arcm.lock().expect("Failed to lock mutex");
+            guard.preimages.unwrap()
+        });
+        let binding_output = gate.get_output_wires().clone();
+        let output_wire_preimages = binding_output.iter().map(|wire_arcm| {
+            let guard = &wire_arcm.lock().expect("Failed to lock mutex");
+            guard.preimages.unwrap()
+        });
 
         let all_possible_inputs = generate_all_possibilities(input_size);
         let all_possible_outputs = generate_all_possibilities(output_size);
@@ -318,57 +296,23 @@ mod tests {
         println!("all possible outputs: {:?}", all_possible_outputs);
 
         let mut rng = rand::thread_rng();
-        let lock_preimage: [u8; 32] = rng.gen();
+        let lock_preimage: PreimageValue = rng.gen();
         let lock_hash = sha256::Hash::hash(&lock_preimage).to_byte_array();
         let script = gate.create_response_script(lock_hash);
-
         println!("script: {:?}", script);
-        //fix conversion from bool to u8, we do not need it anymore
+
         for input in all_possible_inputs.iter() {
-            let mut input_preimage_indices = vec![];
-            for i in 0..input_size {
-                input_preimage_indices.push(get_preimage_index(input[i]));
-            }
+
+            gate.set_input_bits(input.clone());
+            gate.evaluate();
+
             let gate_res = gate.run_gate_on_inputs(input.clone());
 
-            let mut input_solution_preimages = vec![];
-
-            for i in 0..input_size {
-                if input_preimage_indices[i] == 1 {
-                    assert!(input_wire_preimages[i].one.unwrap().len() == 32);
-                    input_solution_preimages
-                        .push(input_wire_preimages[i].one.unwrap().clone().to_vec());
-                } else {
-                    assert!(input_wire_preimages[i].zero.unwrap().len() == 32);
-                    input_solution_preimages
-                        .push(input_wire_preimages[i].zero.unwrap().clone().to_vec());
-                }
-            }
-
-            //do this with for so that all possibilities are covered
             for output in all_possible_outputs.iter() {
-                let mut output_preimage_indices = vec![];
-                for i in 0..output_size {
-                    output_preimage_indices.push(get_preimage_index(output[i]));
-                }
 
-                let mut output_solution_preimages = vec![];
+                gate.set_output_bits(output.clone());
 
-                for i in 0..output_size {
-                    if output_preimage_indices[i] == 1 {
-                        assert!(output_wire_preimages[i].one.unwrap().len() == 32);
-                        output_solution_preimages
-                            .push(output_wire_preimages[i].one.unwrap().clone().to_vec());
-                    } else {
-                        assert!(output_wire_preimages[i].zero.unwrap().len() == 32);
-                        output_solution_preimages
-                            .push(output_wire_preimages[i].zero.unwrap().clone().to_vec());
-                    }
-                }
-
-                let mut solution_preimages = input_solution_preimages.clone().to_vec();
-                solution_preimages.extend(output_solution_preimages.clone().to_vec());
-                solution_preimages.push(lock_preimage.clone().to_vec());
+                let solution_preimages = gate.create_response_witness(lock_preimage);
 
                 println!("solution preimages: {:?}", solution_preimages.clone());
 
@@ -376,17 +320,20 @@ mod tests {
                 println!("gate_res: {:?}", gate_res);
                 println!("output: {:?}", output);
                 let mut compare_vectors = true;
+
                 for i in 0..output_size {
                     if gate_res[i] != output[i] {
                         compare_vectors = false;
                         break;
                     }
                 }
+
                 println!("compare_vectors: {}", compare_vectors);
-                println!("input preimage indices: {:?}", input_preimage_indices);
-                println!("output preimage indices: {:?}", output_preimage_indices);
+                println!("input preimage indices: {:?}", input_wire_preimages);
+                println!("output preimage indices: {:?}", output_wire_preimages);
                 let has_error = check_exec(exec, compare_vectors);
                 println!("has_error: {}", has_error);
+                
             }
         }
     }

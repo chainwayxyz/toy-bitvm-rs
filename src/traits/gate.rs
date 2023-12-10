@@ -1,4 +1,4 @@
-use crate::wire::{HashValue, Wire};
+use crate::wire::{HashValue, Wire, PreimageValue};
 use bitcoin::ScriptBuf;
 use std::{
     iter::zip,
@@ -21,6 +21,19 @@ pub trait GateTrait {
             .collect()
     }
 
+    fn set_input_bits(&mut self, input_bits: Vec<bool>) {
+        for (wire_arcm, b) in zip(&mut self.get_input_wires().iter(), input_bits) {
+            wire_arcm.lock().unwrap().selector = Some(b);
+        }
+    }
+
+    fn get_output_bits(&mut self) -> Vec<bool> {
+        self.get_output_wires()
+            .iter()
+            .map(|wire_arcm| wire_arcm.lock().unwrap().selector.unwrap())
+            .collect()
+    }
+
     fn set_output_bits(&mut self, output_bits: Vec<bool>) {
         for (wire_arcm, b) in zip(&mut self.get_output_wires().iter(), output_bits) {
             wire_arcm.lock().unwrap().selector = Some(b);
@@ -35,7 +48,7 @@ pub trait GateTrait {
 
     fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf;
 
-    fn create_response_witness(&mut self, hashlock_preimage: [u8; 32]) -> Vec<[u8; 32]> {
+    fn create_response_witness(&mut self, hashlock_preimage: PreimageValue) -> Vec<PreimageValue> {
         let input_preimages = self
             .get_input_wires()
             .iter()
@@ -52,7 +65,7 @@ pub trait GateTrait {
         witness
     }
 
-    fn add_preimages_from_witness(&mut self, witness: Vec<[u8; 32]>) -> Option<Wire> {
+    fn add_preimages_from_witness(&mut self, witness: Vec<PreimageValue>) -> Option<Wire> {
         let input_preimages = witness[0..self.get_input_size()].to_vec();
         let output_preimages = witness[self.get_input_size()..].to_vec();
         for (wire_arcm, preimage) in zip(&mut self.get_input_wires().iter(), input_preimages) {

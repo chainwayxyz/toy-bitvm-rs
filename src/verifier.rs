@@ -399,7 +399,8 @@ async fn handle_connection(stream: TcpStream) {
             ],
             output: outputs2.clone(),
         };
-        if found_contradiction.is_some() {
+
+        if let Some(value) = found_contradiction {
             let mut steal_tx = Transaction {
                 version: bitcoin::transaction::Version::TWO,
                 lock_time: LockTime::from(Height::MIN),
@@ -421,7 +422,7 @@ async fn handle_connection(stream: TcpStream) {
             let mut sighash_cache = SighashCache::new(steal_tx.borrow_mut());
 
             let equivocation_script = generate_anti_contradiction_script(
-                found_contradiction.clone().unwrap().get_hash_pair(),
+                value.clone().get_hash_pair(),
                 verifier_public_key,
             );
             let sig_hash = sighash_cache
@@ -442,17 +443,15 @@ async fn handle_connection(stream: TcpStream) {
             let witness = sighash_cache.witness_mut(0).unwrap();
             witness.push(equivocation_sig.as_ref());
             witness.push(
-                found_contradiction
+                value
                     .clone()
-                    .unwrap()
                     .preimages
                     .unwrap()
                     .one
                     .unwrap(),
             );
             witness.push(
-                found_contradiction
-                    .unwrap()
+                value
                     .preimages
                     .unwrap()
                     .zero
