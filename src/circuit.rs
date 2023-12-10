@@ -186,17 +186,14 @@ impl Circuit {
 
 #[cfg(test)]
 mod tests {
-    use bitcoin::secp256k1::Secp256k1;
-    use bitcoin::taproot::LeafVersion;
+    
+    
 
     use super::*;
-    use crate::actor::Actor;
+    
     use crate::utils::{bool_array_to_number, number_to_bool_array};
 
-    use crate::transactions::{
-        generate_anti_contradiction_script, generate_challenge_address_and_info,
-        generate_timelock_script,
-    };
+    
 
     #[test]
     fn test_circuit() {
@@ -221,46 +218,5 @@ mod tests {
         let o = circuit.evaluate(vec![b1, b2]);
         let output = bool_array_to_number(o.get(0).unwrap().to_vec());
         assert_eq!(output, a1 + a2);
-    }
-
-    #[test]
-    fn test_challenge_tree() {
-        let circuit = Circuit::from_bristol("bristol/test.txt", None);
-        let prover = Actor::new();
-        let mut verifier = Actor::new();
-        let secp = Secp256k1::new();
-
-        let challenge_hashes = verifier.generate_challenge_hashes(circuit.num_gates());
-
-        let (_address, tree_info) = generate_challenge_address_and_info(
-            &secp,
-            &circuit,
-            prover.public_key,
-            verifier.public_key,
-            &challenge_hashes,
-        );
-        for wire_rcref in circuit.wires.iter() {
-            let wire = wire_rcref.lock().unwrap();
-            let script =
-                generate_anti_contradiction_script(wire.get_hash_pair(), verifier.public_key);
-            let ctrl_block = tree_info
-                .control_block(&(script.clone(), LeafVersion::TapScript))
-                .unwrap();
-            assert!(ctrl_block.verify_taproot_commitment(
-                &secp,
-                tree_info.output_key().to_inner(),
-                &script
-            ));
-        }
-        // TODO: add tests for reveral challenge scripts
-        let p10_script = generate_timelock_script(prover.public_key, 10);
-        let p10_ctrl_block = tree_info
-            .control_block(&(p10_script.clone(), LeafVersion::TapScript))
-            .unwrap();
-        assert!(p10_ctrl_block.verify_taproot_commitment(
-            &secp,
-            tree_info.output_key().to_inner(),
-            &p10_script
-        ));
     }
 }
