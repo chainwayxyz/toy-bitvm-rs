@@ -1,5 +1,5 @@
 use bitcoin::opcodes::all::{
-    OP_BOOLAND, OP_EQUALVERIFY, OP_FROMALTSTACK, OP_NOT, OP_NUMEQUAL, OP_SHA256, OP_TOALTSTACK,
+    OP_BOOLAND, OP_EQUALVERIFY, OP_FROMALTSTACK, OP_NOT, OP_NUMEQUAL, OP_SHA256, OP_TOALTSTACK, OP_BOOLOR, OP_2DUP,
 };
 use bitcoin::script::Builder;
 use bitcoin::ScriptBuf;
@@ -192,6 +192,140 @@ impl GateTrait for XorGate {
     }
 }
 
+pub struct OrGate {
+    pub input_wires: Vec<Arc<Mutex<Wire>>>,
+    pub output_wires: Vec<Arc<Mutex<Wire>>>,
+}
+
+impl OrGate {
+    pub fn new(input_wires: Vec<Arc<Mutex<Wire>>>, output_wires: Vec<Arc<Mutex<Wire>>>) -> Self {
+        OrGate {
+            input_wires,
+            output_wires,
+        }
+    }
+}
+
+impl GateTrait for OrGate {
+
+    fn get_input_size(&self) -> usize {
+        2
+    }
+
+    fn get_output_size(&self) -> usize {
+        1
+    }
+
+    fn get_input_wires(&mut self) -> &mut Wires {
+        &mut self.input_wires
+    }
+
+    fn get_output_wires(&mut self) -> &mut Wires {
+        &mut self.output_wires
+    }
+
+    fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
+        let builder = Builder::new()
+            .push_opcode(OP_SHA256)
+            .push_slice(lock_hash)
+            .push_opcode(OP_EQUALVERIFY);
+        let builder = add_bit_commitment_script(
+            self.output_wires[0].lock().unwrap().get_hash_pair(),
+            builder,
+        )
+        .push_opcode(OP_TOALTSTACK);
+        let builder =
+            add_bit_commitment_script(self.input_wires[1].lock().unwrap().get_hash_pair(), builder)
+                .push_opcode(OP_TOALTSTACK);
+        let builder =
+            add_bit_commitment_script(self.input_wires[0].lock().unwrap().get_hash_pair(), builder);
+        builder
+            .push_opcode(OP_FROMALTSTACK)
+            .push_opcode(OP_BOOLOR)
+            .push_opcode(OP_FROMALTSTACK)
+            .push_opcode(OP_EQUALVERIFY)
+            .into_script()
+            
+    }
+
+    fn run_gate_on_inputs(&self, inputs: Vec<bool>) -> Vec<bool> {
+        assert!(inputs.len() == 2);
+        vec![inputs[0] || inputs[1]]
+    }
+}
+
+pub struct BitAdditionGate {
+    pub input_wires: Vec<Arc<Mutex<Wire>>>,
+    pub output_wires: Vec<Arc<Mutex<Wire>>>,
+}
+
+impl BitAdditionGate {
+    pub fn new(input_wires: Vec<Arc<Mutex<Wire>>>, output_wires: Vec<Arc<Mutex<Wire>>>) -> Self {
+        BitAdditionGate {
+            input_wires,
+            output_wires,
+        }
+    }
+}
+
+impl GateTrait for BitAdditionGate {
+    fn get_input_size(&self) -> usize {
+        2
+    }
+
+    fn get_output_size(&self) -> usize {
+        2
+    }
+
+    fn get_input_wires(&mut self) -> &mut Wires {
+        &mut self.input_wires
+    }
+
+    fn get_output_wires(&mut self) -> &mut Wires {
+        &mut self.output_wires
+    }
+
+    fn create_response_script(&self, lock_hash: HashValue) -> ScriptBuf {
+        let builder = Builder::new()
+            .push_opcode(OP_SHA256)
+            .push_slice(lock_hash)
+            .push_opcode(OP_EQUALVERIFY);
+        let builder = add_bit_commitment_script(
+            self.output_wires[1].lock().unwrap().get_hash_pair(),
+            builder,
+        )
+        .push_opcode(OP_TOALTSTACK);
+        let builder = add_bit_commitment_script(
+            self.output_wires[0].lock().unwrap().get_hash_pair(),
+            builder,
+        )
+        .push_opcode(OP_TOALTSTACK);
+        let builder =
+            add_bit_commitment_script(self.input_wires[1].lock().unwrap().get_hash_pair(), builder)
+                .push_opcode(OP_TOALTSTACK);
+        let builder =
+            add_bit_commitment_script(self.input_wires[0].lock().unwrap().get_hash_pair(), builder);
+        builder
+            .push_opcode(OP_FROMALTSTACK)
+            .push_opcode(OP_2DUP)
+            .push_opcode(OP_NUMEQUAL)
+            .push_opcode(OP_NOT)
+            .push_opcode(OP_FROMALTSTACK)
+            .push_opcode(OP_EQUALVERIFY)
+            .push_opcode(OP_BOOLAND)
+            .push_opcode(OP_FROMALTSTACK)
+            .push_opcode(OP_EQUALVERIFY)
+            .into_script()
+    }
+
+    fn run_gate_on_inputs(&self, inputs: Vec<bool>) -> Vec<bool> {
+        assert!(inputs.len() == 2);
+        let sum = inputs[0] ^ inputs[1];
+        let carry = inputs[0] && inputs[1];
+        vec![sum, carry]
+    }
+}
+
 macro_rules! create_gate_without_wires {
     ($gate_type:ty, $input_wires:expr, $output_wires:expr) => {{
         if let (Some(input_wires), Some(output_wires)) =
@@ -219,6 +353,8 @@ pub fn create_gate(
         "not" => create_gate_without_wires!(NotGate, &input_wires, &output_wires),
         "xor" => create_gate_without_wires!(XorGate, &input_wires, &output_wires),
         "and" => create_gate_without_wires!(AndGate, &input_wires, &output_wires),
+        "or" => create_gate_without_wires!(OrGate, &input_wires, &output_wires),
+        "bit_addition" => create_gate_without_wires!(BitAdditionGate, &input_wires, &output_wires),
         _ => panic!("Invalid gate name"),
     }
 }
@@ -323,5 +459,15 @@ mod tests {
     #[test]
     fn test_and_gate() {
         test_gate("and");
+    }
+
+    #[test]
+    fn test_or_gate() {
+        test_gate("or");
+    }
+
+    #[test]
+    fn test_bit_addition_gate() {
+        test_gate("bit_addition")
     }
 }
