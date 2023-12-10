@@ -268,7 +268,6 @@ mod tests {
             },
             script.clone(),
             solution_preimages
-                
                 .iter()
                 .map(|preimage| preimage.to_vec())
                 .collect(),

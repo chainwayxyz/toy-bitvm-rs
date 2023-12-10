@@ -6,11 +6,7 @@ use std::sync::{Arc, Mutex};
 use crate::gates::create_gate;
 use crate::wire::HashTuple;
 
-use crate::{
-    traits::gate::GateTrait,
-    utils::read_lines,
-    wire::Wire,
-};
+use crate::{traits::gate::GateTrait, utils::read_lines, wire::Wire};
 
 pub struct Circuit {
     pub input_sizes: Vec<usize>,
