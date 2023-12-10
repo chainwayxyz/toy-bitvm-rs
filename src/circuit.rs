@@ -186,14 +186,10 @@ impl Circuit {
 
 #[cfg(test)]
 mod tests {
-    
-    
 
     use super::*;
-    
-    use crate::utils::{bool_array_to_number, number_to_bool_array};
 
-    
+    use crate::utils::{bool_array_to_number, number_to_bool_array};
 
     #[test]
     fn test_circuit() {
