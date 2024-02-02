@@ -10,8 +10,8 @@ use bitcoin::blockdata::script::Builder;
 use bitcoin::opcodes::all::*;
 use bitcoincore_rpc::{Client, RpcApi};
 
+use crate::circuit::wire::{HashTuple, HashValue};
 use crate::traits::gate::GateTrait;
-use crate::wire::{HashTuple, HashValue};
 
 use crate::circuit::Circuit;
 

@@ -12,20 +12,18 @@ use bitcoin::{secp256k1::Secp256k1, Amount, Transaction, XOnlyPublicKey};
 use bitcoin::{OutPoint, ScriptBuf, TapLeafHash, TxIn, TxOut, Witness};
 
 use bitcoincore_rpc::{Auth, Client, RpcApi};
-use bitvm::transactions::{
-    generate_2_of_2_script, generate_equivoation_address_and_info, generate_gate_response_script,
-    generate_response_second_address_and_info, watch_transaction,
-};
-
-use bitvm::utils::number_to_bool_array;
-use bitvm::wire::PreimageValue;
-// prover.rs
-use bitvm::{
+use toy_bitvm::{
     actor::Actor,
+    circuit::wire::{HashTuple, HashValue, PreimageValue},
     circuit::Circuit,
     communication::{receive_message, send_message},
+    transactions::{
+        generate_2_of_2_script, generate_equivoation_address_and_info,
+        generate_gate_response_script, generate_response_second_address_and_info,
+        watch_transaction,
+    },
     transactions::{generate_challenge_address_and_info, generate_response_address_and_info},
-    wire::{HashTuple, HashValue},
+    utils::number_to_bool_array,
 };
 
 use tokio_tungstenite::connect_async;
@@ -114,7 +112,7 @@ async fn main() {
     };
 
     for i in 0..bisection_length as u64 {
-        println!("Bisection iteration {}", i);
+        println!("Bisection iteration: {}", i);
         let challenge_hashes: Vec<HashValue> = receive_message(&mut ws_stream).await.unwrap();
         prover.add_challenge_hashes(challenge_hashes.clone());
         let (challenge_address, _) = generate_challenge_address_and_info(
@@ -261,14 +259,14 @@ async fn main() {
             )
             .unwrap();
         let challenge_sig = prover.sign(sig_hash);
-        println!("challenge sig: {:?}", challenge_sig);
+        println!("Challenge Sig: {:?}", challenge_sig);
 
         send_message(&mut ws_stream, &challenge_sig).await.unwrap();
 
         last_output = outputs2;
         last_txid = response_tx.txid();
     }
-    println!("Bisection complete");
+    println!("Bisection completed");
     // now we send the funding
 
     let prevouts = vec![TxOut {
@@ -278,7 +276,6 @@ async fn main() {
 
     // if kickoff_tx uninitialized, then panic
 
-    println!("prevout: {:?}", prevouts);
     let mut sighash_cache = SighashCache::new(kickoff_tx.borrow_mut());
     // TODO: add support for signing with a keypair
     let sig_hash = sighash_cache
@@ -299,7 +296,7 @@ async fn main() {
     let kickoff_txid = rpc
         .send_raw_transaction(&kickoff_tx)
         .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
-    println!("initial kickoff txid = {:?}", kickoff_txid);
+    println!("Initial kickoff txid: {:?}", kickoff_txid);
     send_message(&mut ws_stream, &kickoff_txid).await.unwrap();
 
     let a1 = 633;
@@ -461,11 +458,10 @@ async fn main() {
                 .send_raw_transaction(&challenge_tx)
                 .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
 
-            println!("Our response to the challenge");
-            println!("txid : {:?}", challenge_txid);
+            println!("Responsing to the challenge, txid: {:?}", challenge_txid);
 
             // let _sig = verifier.sign(sig_hash);
-            println!("NOW WE GIVE THE RESPONSEEE");
+            println!("Response given");
 
             let a1 = 32;
             let a2 = 70;
@@ -505,7 +501,7 @@ async fn main() {
 
         // println!("response txid: {:?}", response_tx.txid());
         // Prover waits for challenge
-        println!("Waiting for challenge");
+        println!("Waiting for a challenge...");
         let challenge_tx = watch_transaction(&rpc, &response_tx.txid(), watch_interval).unwrap();
         let preimage: &[u8; 32] = challenge_tx.input[0]
             .witness

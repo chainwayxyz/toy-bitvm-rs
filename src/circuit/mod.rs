@@ -1,12 +1,15 @@
+pub mod gates;
+pub mod wire;
+
 use std::collections::BTreeMap;
 use std::iter::zip;
 
 use std::sync::{Arc, Mutex};
 
-use crate::gates::create_gate;
-use crate::wire::HashTuple;
+use gates::create_gate;
+use wire::{HashTuple, Wire};
 
-use crate::{traits::gate::GateTrait, utils::read_lines, wire::Wire};
+use crate::{traits::gate::GateTrait, utils::read_lines};
 
 pub struct Circuit {
     pub input_sizes: Vec<usize>,
@@ -212,7 +215,7 @@ mod tests {
         let b2 = number_to_bool_array(a2, 64);
 
         let o = circuit.evaluate(vec![b1, b2]);
-        let output = bool_array_to_number(o.get(0).unwrap().to_vec());
+        let output = bool_array_to_number(o.first().unwrap().to_vec());
         assert_eq!(output, a1 + a2);
     }
 }

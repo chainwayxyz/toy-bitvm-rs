@@ -10,23 +10,21 @@ use bitcoin::taproot::LeafVersion;
 use bitcoin::{secp256k1::Secp256k1, Transaction, Txid, XOnlyPublicKey};
 use bitcoin::{Amount, OutPoint, ScriptBuf, TapLeafHash, TxIn, TxOut, Witness};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
-use bitvm::transactions::{
-    generate_2_of_2_script, generate_anti_contradiction_script, generate_challenge_script,
-    generate_equivoation_address_and_info, generate_response_second_address_and_info,
-    watch_transaction,
-};
-use bitvm::utils::take_stdin;
-use bitvm::wire::{PreimageValue, Wire};
-// verifier.rs
-use bitvm::{
-    actor::Actor,
-    circuit::Circuit,
-    communication::{receive_message, send_message},
-    transactions::{generate_challenge_address_and_info, generate_response_address_and_info},
-    wire::{HashTuple, HashValue},
-};
 use tokio::net::{TcpListener, TcpStream};
 use tokio_tungstenite::accept_async;
+use toy_bitvm::{
+    actor::Actor,
+    circuit::wire::{HashTuple, HashValue, PreimageValue, Wire},
+    circuit::Circuit,
+    communication::{receive_message, send_message},
+    transactions::{
+        generate_2_of_2_script, generate_anti_contradiction_script,
+        generate_challenge_address_and_info, generate_challenge_script,
+        generate_equivoation_address_and_info, generate_response_address_and_info,
+        generate_response_second_address_and_info, watch_transaction,
+    },
+    utils::take_stdin,
+};
 
 #[tokio::main]
 async fn main() {
@@ -103,7 +101,7 @@ async fn handle_connection(stream: TcpStream) {
     };
 
     for i in 0..bisection_length as u64 {
-        println!("Bisection iteration {}", i);
+        println!("Bisection iteration: {}", i);
         let challenge_hashes: Vec<HashValue> =
             verifier.generate_challenge_hashes(circuit.num_gates());
         send_message(&mut ws_stream, &challenge_hashes)
@@ -236,7 +234,7 @@ async fn handle_connection(stream: TcpStream) {
         // Prover needs to give signature to verifier so that verifier can start a challenge
         let challenge_sig: Signature = receive_message(&mut ws_stream).await.unwrap();
         verifier.add_signature(challenge_sig);
-        println!("challenge sig: {:?}", challenge_sig);
+        println!("Challenge Sig: {:?}", challenge_sig);
         // Verify needs to verify the signature
         let mut sighash_cache = SighashCache::new(response_tx.borrow_mut());
 
@@ -261,7 +259,7 @@ async fn handle_connection(stream: TcpStream) {
         last_output = outputs2;
         last_txid = response_tx.txid();
     }
-    println!("Bisection complete!");
+    println!("Bisection completed");
     let kickoff_txid: Txid = receive_message(&mut ws_stream).await.unwrap();
     if kickoff_tx.txid() != kickoff_txid {
         panic!("Kickoff txid mismatch!");
@@ -353,7 +351,7 @@ async fn handle_connection(stream: TcpStream) {
 
         if i != 0 {
             // Verifier needs needs to give signature to prover so that prover can give a response
-            println!("Waiting for provers response");
+            println!("Waiting for prover's response...");
             let provers_response =
                 watch_transaction(&rpc, &challenge_tx.txid(), watch_interval).unwrap();
             let num_wires = circuit.gates[challenge_gate_num].get_input_size()
@@ -418,7 +416,7 @@ async fn handle_connection(stream: TcpStream) {
                     value: Amount::from_sat(amt - (2 * i + 2) * (fee + dust_limit)),
                 }],
             };
-            println!("CONTRADICTION FOUND");
+            println!("Contraditcion found! Slashing the prover!");
             let mut sighash_cache = SighashCache::new(steal_tx.borrow_mut());
 
             let equivocation_script = generate_anti_contradiction_script(
@@ -450,7 +448,8 @@ async fn handle_connection(stream: TcpStream) {
             let steal_txid = rpc
                 .send_raw_transaction(&steal_tx)
                 .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
-            println!("VERIFIER STOLE ALL THE MONEY: {:?}", steal_txid);
+            println!("Verifier slashed the prover: {:?}", steal_txid);
+            std::process::exit(0);
         }
         // Prover needs to give signature to verifier so that verifier can start a challenge
         challenge_gate_num =
@@ -514,11 +513,10 @@ async fn handle_connection(stream: TcpStream) {
             .send_raw_transaction(&response_tx)
             .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
 
-        println!("CHALLENGE SENTTTTTTT");
-        println!("txid : {:?}", response_txid);
+        println!("Challenge transaction sent! txid: {:?}", response_txid);
 
         last_output = outputs2;
         last_txid = response_tx.txid();
     }
-    println!("{:?}", last_output);
+    println!("Last output: {:?}", last_output);
 }

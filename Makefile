@@ -13,3 +13,13 @@ fix:
 check:
 	cargo fmt -- --check
 	cargo clippy -- -D warnings
+
+lint:
+	cargo +nightly fmt --all --check
+	cargo check --all-targets --all-features
+	cargo clippy --all-targets --all-features
+
+lint-fix: 
+	cargo +nightly fmt --all
+	cargo fix --allow-dirty
+	cargo clippy --fix --allow-dirty
