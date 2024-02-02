@@ -12,18 +12,20 @@ use bitcoin::{secp256k1::Secp256k1, Amount, Transaction, XOnlyPublicKey};
 use bitcoin::{OutPoint, ScriptBuf, TapLeafHash, TxIn, TxOut, Witness};
 
 use bitcoincore_rpc::{Auth, Client, RpcApi};
-use toy_bitvm::transactions::{
+use bitvm::transactions::{
     generate_2_of_2_script, generate_equivoation_address_and_info, generate_gate_response_script,
     generate_response_second_address_and_info, watch_transaction,
 };
 
-use toy_bitvm::circuit::wire::{HashTuple, HashValue, PreimageValue};
-use toy_bitvm::utils::number_to_bool_array;
-use toy_bitvm::{
+use bitvm::utils::number_to_bool_array;
+use bitvm::wire::PreimageValue;
+// prover.rs
+use bitvm::{
     actor::Actor,
     circuit::Circuit,
     communication::{receive_message, send_message},
     transactions::{generate_challenge_address_and_info, generate_response_address_and_info},
+    wire::{HashTuple, HashValue},
 };
 
 use tokio_tungstenite::connect_async;

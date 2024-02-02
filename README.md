@@ -1,6 +1,6 @@
 # BitVM.rs
 
-Experimental toy BitVM implementation in Rust.
+Experimental BitVM implementation in Rust.
 
 It is recommended to always use [cargo-crev](https://github.com/crev-dev/cargo-crev)
 to verify the trustworthiness of each of your dependencies, including this one.

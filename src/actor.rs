@@ -9,7 +9,7 @@ use bitcoin::{
 };
 use rand::Rng;
 
-use crate::circuit::wire::{HashValue, PreimageValue};
+use crate::wire::{HashValue, PreimageValue};
 
 pub struct Actor {
     secp: Secp256k1<All>,
