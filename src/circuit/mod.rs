@@ -1,12 +1,15 @@
+pub mod gates;
+pub mod wire;
+
 use std::collections::BTreeMap;
 use std::iter::zip;
 
 use std::sync::{Arc, Mutex};
 
-use crate::gates::create_gate;
-use crate::wire::HashTuple;
+use gates::create_gate;
+use wire::{HashTuple, Wire};
 
-use crate::{traits::gate::GateTrait, utils::read_lines, wire::Wire};
+use crate::{traits::gate::GateTrait, utils::read_lines};
 
 pub struct Circuit {
     pub input_sizes: Vec<usize>,
