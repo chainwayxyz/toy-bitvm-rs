@@ -12,7 +12,7 @@ bitcoind -regtest -rpcuser=admin -rpcpassword=admin -rpcport=18443 -fallbackfee=
 
 Then run the following command to generate blocks continuously:
 ```
-./regtest-commands.sh
+sh ./regtest-commands.sh
 ```
 
 Then start the verifier binary with the following command:
@@ -20,7 +20,7 @@ Then start the verifier binary with the following command:
 cargo run --bin verifier
 ```
 
-Start the prover binary with the following command:
+Start the prover binary with the following command in another terminal:
 ```
 cargo run --bin prover
 ```
