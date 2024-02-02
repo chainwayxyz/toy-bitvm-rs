@@ -449,6 +449,7 @@ async fn handle_connection(stream: TcpStream) {
                 .send_raw_transaction(&steal_tx)
                 .unwrap_or_else(|e| panic!("Failed to send raw transaction: {}", e));
             println!("Verifier slashed the prover: {:?}", steal_txid);
+            std::process::exit(0);
         }
         // Prover needs to give signature to verifier so that verifier can start a challenge
         challenge_gate_num =
