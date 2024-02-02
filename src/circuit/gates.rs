@@ -4,12 +4,9 @@ use bitcoin::opcodes::all::{
 use bitcoin::script::Builder;
 use bitcoin::ScriptBuf;
 
+use super::wire::{HashValue, Wire};
+use crate::traits::gate::{GateTrait, Wires};
 use crate::transactions::add_bit_commitment_script;
-use crate::wire::HashValue;
-use crate::{
-    traits::gate::{GateTrait, Wires},
-    wire::Wire,
-};
 
 use std::sync::{Arc, Mutex};
 
@@ -225,8 +222,7 @@ pub fn create_gate(
 
 #[cfg(test)]
 mod tests {
-    use crate::wire::PreimageValue;
-
+    use super::super::wire::PreimageValue;
     use super::*;
     use bitcoin::hashes::sha256;
     use bitcoin::hashes::Hash;

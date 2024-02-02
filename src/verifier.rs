@@ -10,23 +10,22 @@ use bitcoin::taproot::LeafVersion;
 use bitcoin::{secp256k1::Secp256k1, Transaction, Txid, XOnlyPublicKey};
 use bitcoin::{Amount, OutPoint, ScriptBuf, TapLeafHash, TxIn, TxOut, Witness};
 use bitcoincore_rpc::{Auth, Client, RpcApi};
-use bitvm::transactions::{
+use toy_bitvm::circuit::wire::{HashTuple, HashValue, PreimageValue, Wire};
+use toy_bitvm::transactions::{
     generate_2_of_2_script, generate_anti_contradiction_script, generate_challenge_script,
     generate_equivoation_address_and_info, generate_response_second_address_and_info,
     watch_transaction,
 };
-use bitvm::utils::take_stdin;
-use bitvm::wire::{PreimageValue, Wire};
+use toy_bitvm::utils::take_stdin;
 // verifier.rs
-use bitvm::{
+use tokio::net::{TcpListener, TcpStream};
+use tokio_tungstenite::accept_async;
+use toy_bitvm::{
     actor::Actor,
     circuit::Circuit,
     communication::{receive_message, send_message},
     transactions::{generate_challenge_address_and_info, generate_response_address_and_info},
-    wire::{HashTuple, HashValue},
 };
-use tokio::net::{TcpListener, TcpStream};
-use tokio_tungstenite::accept_async;
 
 #[tokio::main]
 async fn main() {
